@@ -3,16 +3,17 @@ import numpy as np
 import scipy
 import itertools
 import random
+import matplotlib.pyplot as plt
 
 
-random.seed(1)
+#random.seed(1)
 
 
 #Number of qubits
-n = 5
+n = 3
 
 #Number of copies
-k = 10000
+k = 5000
 
 #W state of N qubits
 w_vec = []
@@ -271,10 +272,15 @@ cons = ({'type': 'eq', 'fun': lambda x: 1 - np.trace(qubit2density(x))},
 		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
 
 
+
+
+
+
+
+
 reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
 										bounds=bnds, constraints=cons, 
-										method='SLSQP', tol=1e-12,
-										options={'maxiter':10000})
+										method='SLSQP')
 print(reconstrution)
 
 sol_den = Qobj(qubit2density(reconstrution['x']))
@@ -292,3 +298,42 @@ print(partial_W.eigenstates())
 print(fidelity(partial_W, sol_den))
 
 print(sol_den.tr())
+
+
+true_frequencies = frequencies
+#print(true_frequencies)
+#print(type(true_frequencies))
+
+fids = []
+k_indexes = []
+
+for i in range(25):
+	print("-------------------ROUND {} -----------------".format(i))
+	last_index = int((i + 1) * k / 25)
+	frequencies = true_frequencies[:last_index]
+	reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
+										bounds=bnds, constraints=cons, 
+										method='SLSQP')
+	sol_den = Qobj(qubit2density(reconstrution['x']))
+	fids.append(fidelity(partial_W, sol_den))
+	k_indexes.append(last_index)
+
+
+
+
+plt.scatter(k_indexes, fids)
+
+#Function for fitting
+def func(x, a, b, c):
+	return c - a * np.exp(-b * x)
+
+popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids)
+print(popt)
+print(pcov)
+#fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
+
+
+
+plt.plot(k_indexes, func(k, *popt))
+
+plt.show()
