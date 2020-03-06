@@ -9,10 +9,10 @@ random.seed(1)
 
 
 #Number of qubits
-n = 3
+n = 5
 
 #Number of copies
-k = 50
+k = 10000
 
 #W state of N qubits
 w_vec = []
@@ -114,8 +114,7 @@ print(M[simulated_statistic[0]])
 
 #Reconstruct 2-qubit states from outcome statistic
 
-partial_W = w_state.ptrace([0, 2])
-#print(w_state)
+partial_W = Qobj(np.array(w_state.ptrace([0,1])))
 #print(partial_W)
 
 
@@ -190,6 +189,26 @@ def qubit2density(p):#p is list of 16 numbers
 			d[j][i] += elem*(1j)
 	return d
 
+
+def density_to_vector(density):#p is list of 16 numbers
+	d = np.array(density, dtype=complex)
+	p = []
+	#Set diagonal elements
+	for i in range(4):
+		#d[i][i] = p.pop(0)
+		p.append(np.real(d[i][i]))
+	#set real elements
+	for i in range(3):
+		for j in range(i+1, 4):
+			p.append(np.real(d[i][j]))
+	#set complex elements
+	for i in range(3):
+		for j in range(i+1, 4):
+			p.append(np.imag(d[i][j]))
+	return tuple(p)
+
+
+
 #print(qubit2density([1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]))
 
 
@@ -207,17 +226,33 @@ print(convert_statistics(simulated_statistic, 0, 1))
 
 frequencies = convert_statistics(simulated_statistic, 0, 1)
 
-def maximum_likelihood(density_matrix):
+def maximum_likelihood(p):
+	density_matrix = qubit2density(p)
 	max_sum = 0
 	for i in range(len(m_obs2)):
-		max_sum += frequencies[i]*np.log(np.real((m_obs2[i] * density_matrix).tr())) 
-	return -max_sum / k
+		max_sum += frequencies.count(i)*np.log(np.real(np.trace(m_obs2[i] * density_matrix)))
+	return np.real(-max_sum / k)
 
-
-
-print(maximum_likelihood(partial_W))
 
 args = list(np.random.uniform(0, 1, 4)) + list(np.random.uniform(-1, 1, 12))
+d1 = random.uniform(0, 1)
+d2 = random.uniform(0, d1)
+d3 = random.uniform(0, d2)
+d4 = 1 - d1 - d2 - d3
+args = (d1,d2,d3,d4,0,0,0,0,0,0,0,0,0,0,0,0)
+
+#Random initial guess
+args = density_to_vector(rand_dm(4))
+
+
+#print(len(args))
+#print(maximum_likelihood(partial_W))
+#print(len(m_obs2))
+#print(len(list(set(frequencies))))
+
+#print(np.real(np.linalg.eig(qubit2density(args))[0][0]))
+
+
 #print(args)
 
 bnds = ((0,1),)
@@ -233,9 +268,27 @@ cons = ({'type': 'eq', 'fun': lambda x: 1 - np.trace(qubit2density(x))},
 		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0])},
 		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1])},
 		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])}) 
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
 
 
-reconstrution = scipy.optimize.minimize(maximum_likelihood, args, bounds=bnds,
-			 constraints=cons)
+reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
+										bounds=bnds, constraints=cons, 
+										method='SLSQP', tol=1e-12,
+										options={'maxiter':10000})
 print(reconstrution)
+
+sol_den = Qobj(qubit2density(reconstrution['x']))
+
+
+print("-----------------RECONSTRUCTED------------")
+print(sol_den)
+print(sol_den.eigenstates())
+
+print("-----------------PARTIAL W-----------------")
+print(partial_W)
+print(partial_W.eigenstates())
+
+
+print(fidelity(partial_W, sol_den))
+
+print(sol_den.tr())
