@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 n = 3
 
 #Number of copies
-k = 5000
+k = 10000
 
 #W state of N qubits
 w_vec = []
@@ -307,10 +307,28 @@ true_frequencies = frequencies
 fids = []
 k_indexes = []
 
-for i in range(25):
-	print("-------------------ROUND {} -----------------".format(i))
-	last_index = int((i + 1) * k / 25)
+res = 25
+'''
+for i in range(5, int(k / res), int(k/(res*25))):
+	print("-------------------PRELIMINARY ROUND {} of {} -----------------".format(i, int(k / res)))
+	last_index = i
 	frequencies = true_frequencies[:last_index]
+	args = density_to_vector(rand_dm(4))
+	reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
+										bounds=bnds, constraints=cons, 
+										method='SLSQP')
+	sol_den = Qobj(qubit2density(reconstrution['x']))
+	fids.append(fidelity(partial_W, sol_den))
+	k_indexes.append(last_index)
+'''
+
+step = 25
+
+for i in range(5, k, step):
+	print("-------------------ROUND {} of {} -----------------".format(int((i-5)/step), int(k/step)))
+	last_index = i
+	frequencies = true_frequencies[:last_index]
+	args = density_to_vector(rand_dm(4))
 	reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
 										bounds=bnds, constraints=cons, 
 										method='SLSQP')
@@ -318,22 +336,23 @@ for i in range(25):
 	fids.append(fidelity(partial_W, sol_den))
 	k_indexes.append(last_index)
 
-
+k_indexes = np.array(k_indexes)
+fids = np.array(fids)
 
 
 plt.scatter(k_indexes, fids)
 
 #Function for fitting
 def func(x, a, b, c):
-	return c - a * np.exp(-b * x)
-
-popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids)
+	return a - b / np.log(c * x) 
+ 
+popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids, bounds=((0, -np.inf, -np.inf), (1, np.inf, np.inf)))
 print(popt)
 print(pcov)
 #fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
 
 
 
-plt.plot(k_indexes, func(k, *popt))
+plt.plot(k_indexes, func(k_indexes, *popt))
 
 plt.show()
