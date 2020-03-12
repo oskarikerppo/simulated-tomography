@@ -11,10 +11,10 @@ random.seed(1)
 
 
 #Number of qubits
-n = 4
+n = 3
 
 #Number of copies
-k = 50000
+k = 1000
 
 #W state of N qubits
 w_vec = []
@@ -43,6 +43,7 @@ w_state = w_vec * w_vec.dag()
 
 #Pauli matrices
 s = [sigmax(), sigmay(), sigmaz()]
+s_dict = {'X': sigmax(), 'Y': sigmay(), 'Z': sigmaz()}
 
 #General qubit state, input as list of Bloch vector components, i.e. r = [rx, ry, rz]
 def rho(r):
@@ -84,6 +85,9 @@ PZ = [s[2].eigenstates()[1][0] * s[2].eigenstates()[1][0].dag(),
 	  s[2].eigenstates()[1][1] * s[2].eigenstates()[1][1].dag()]
 
 
+pauli_projection_dict = {
+	'X': PX, 'Y': PY, 'Z': PZ
+}
 
 print(tensor(PX[0], PX[1]))
 '''
@@ -112,7 +116,7 @@ def colorings(n):#n is number of qubits as int
 		cols.append([int(np.floor(i/(3**c)) % 3) for i in range(n)])
 	return cols
 
-print(colorings(4))
+print(colorings(n))
 
 def measurement_setups(colorings):
 	measurements = []
@@ -123,5 +127,110 @@ def measurement_setups(colorings):
 		measurements.append(col_mes)
 	return measurements
 
-print(measurement_setups(colorings(4)))
+print(measurement_setups(colorings(n)))
 
+def pauli_setups(mes_setups):
+	mes = []
+	for coloring in mes_setups:
+		color_mes = []
+		for col_mes in coloring:
+			pauli_observable = tensor([s_dict[k] for k in col_mes])
+			effects = []
+			for i in range(len(pauli_observable.eigenstates()[1])):
+				effects.append(pauli_observable.eigenstates()[1][i] * pauli_observable.eigenstates()[1][i].dag())
+		color_mes.append(effects)
+	mes.append(color_mes)
+	return mes
+
+			
+
+M = ["".join(item) for item in itertools.product("01", repeat=n)]
+print(M)
+
+
+def pauli_setups2(mes_setups):
+	mes = []
+	for coloring in mes_setups:
+		color_mes = []
+		for col_mes in coloring:
+			projection_bases = [pauli_projection_dict[k] for k in col_mes]
+			effects = []
+			for i in range(len(M)):
+				effects.append(tensor([projection_bases[k][int(M[i][k])] for k in range(n)]))
+			color_mes.append(effects)
+		mes.append(color_mes)
+	return mes
+	
+
+
+'''
+m_obs = []
+for i in range(len(M)):
+	effects = []
+	for j in range(n):
+		effects.append(E[int(M[i][j])])
+	m_obs.append(tensor(effects))
+'''
+p_obs = pauli_setups(measurement_setups(colorings(n)))
+p_obs2 = pauli_setups2(measurement_setups(colorings(n)))
+print(p_obs2 == p_obs2)
+
+
+print(len(p_obs2))
+print(colorings(n))
+
+print(len(p_obs2[0]))
+print(measurement_setups(colorings(n)))
+
+print(len(p_obs2[0][0]))
+
+#print(p_obs2[0][0][0])
+
+f = 0
+for i in range(len(p_obs2[0][0])):
+	print((w_state * p_obs2[0][0][i]).tr())
+	f += (w_state * p_obs2[0][0][i]).tr()
+print(f)
+
+
+
+
+probabilities = []
+for i in range(len(colorings(n))):
+	col_probs = []
+	for j in range(len(measurement_setups(colorings(n))[i])):
+		probs= []
+		for k in range(len(p_obs2[i][j])):
+			probs.append((w_state * p_obs2[i][j][k]).tr())
+		col_probs.append(probs)
+	probabilities.append(col_probs)
+print(probabilities)
+
+
+#Simulate outcome statistics
+simulated_statistic = []
+
+for i, coloring in enumerate(colorings(n)):
+	c_copies = k / len(colorings(n))
+	for j, setup in enumerate(measurement_setups(colorings(n))[i]):
+		setup_copies = c_copies / len(measurement_setups(colorings(n))[i])
+		for k in range(setup_copies):
+			rand = random.uniform(0, 1)
+			cumulated_probability = 0
+			
+
+
+
+
+'''
+for i in range(k):
+	rand = random.uniform(0, 1)
+	cumulated_probability = 0
+	for j in range(len(expectations)):
+		cumulated_probability += expectations[j]
+		if rand < cumulated_probability:
+			simulated_statistic.append(j)
+			break
+
+print(simulated_statistic)
+'''
