@@ -148,6 +148,9 @@ M = ["".join(item) for item in itertools.product("01", repeat=n)]
 print(M)
 
 
+M2 = ["".join(item) for item in itertools.product("01", repeat=2)]
+
+
 def pauli_setups2(mes_setups):
 	mes = []
 	for coloring in mes_setups:
@@ -157,6 +160,19 @@ def pauli_setups2(mes_setups):
 			effects = []
 			for i in range(len(M)):
 				effects.append(tensor([projection_bases[k][int(M[i][k])] for k in range(n)]))
+			color_mes.append(effects)
+		mes.append(color_mes)
+	return mes
+
+def pauli_2qubit_setups(mes_setups):
+	mes = []
+	for coloring in mes_setups:
+		color_mes = []
+		for col_mes in coloring:
+			projection_bases = [pauli_projection_dict[k] for k in col_mes]
+			effects = []
+			for i in range(len(M2)):
+				effects.append(tensor([projection_bases[k][int(M2[i][k])] for k in range(2)]))
 			color_mes.append(effects)
 		mes.append(color_mes)
 	return mes
@@ -174,6 +190,8 @@ for i in range(len(M)):
 p_obs = pauli_setups(measurement_setups(colorings(n)))
 p_obs2 = pauli_setups2(measurement_setups(colorings(n)))
 print(p_obs2 == p_obs2)
+
+
 
 
 print(len(p_obs2))
@@ -209,16 +227,40 @@ print(probabilities)
 
 #Simulate outcome statistics
 simulated_statistic = []
+k = 1000
 
 for i, coloring in enumerate(colorings(n)):
 	c_copies = k / len(colorings(n))
+	col_stat = []
 	for j, setup in enumerate(measurement_setups(colorings(n))[i]):
 		setup_copies = c_copies / len(measurement_setups(colorings(n))[i])
-		for k in range(setup_copies):
+		setup_stat = []
+		for c in range(int(setup_copies)):
 			rand = random.uniform(0, 1)
 			cumulated_probability = 0
+			for l in range(len(probabilities[i][j])):
+				cumulated_probability += probabilities[i][j][l]
+				if rand < cumulated_probability:
+					setup_stat.append(l)
+					break
+		col_stat.append(setup_stat)
+	simulated_statistic.append(col_stat)
+
+print(simulated_statistic)
+print(len(simulated_statistic))
+print(len(simulated_statistic[0]))
+print(len(simulated_statistic[0][0]))
+print(simulated_statistic[0][0])
 			
 
+
+
+
+p_2obs = pauli_2qubit_setups(measurement_setups(colorings(2)))
+print(colorings(2))
+print(measurement_setups(colorings(2)))
+print(len(p_2obs[0]))
+#print(p_2obs)
 
 
 
