@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 n = 3
 
 #Number of copies
-k = 10000
+k = 2500
 
 #W state of N qubits
 w_vec = []
@@ -322,10 +322,10 @@ for i in range(5, int(k / res), int(k/(res*25))):
 	k_indexes.append(last_index)
 '''
 
-step = 25
-
-for i in range(5, k, step):
-	print("-------------------ROUND {} of {} -----------------".format(int((i-5)/step), int(k/step)))
+step = 20
+start = 50
+for i in range(start, k, step):
+	print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(k/step)))
 	last_index = i
 	frequencies = true_frequencies[:last_index]
 	args = density_to_vector(rand_dm(4))
@@ -344,7 +344,7 @@ plt.scatter(k_indexes, fids)
 
 #Function for fitting
 def func(x, a, b, c):
-	return a - b / np.log(c * x) 
+	return a - b / np.log(c * x)
  
 popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids, bounds=((0, -np.inf, -np.inf), (1, np.inf, np.inf)))
 print(popt)

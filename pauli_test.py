@@ -11,10 +11,10 @@ random.seed(1)
 
 
 #Number of qubits
-n = 3
+n = 4
 
 #Number of copies
-k = 1000
+k = 100
 
 #W state of N qubits
 w_vec = []
@@ -262,17 +262,63 @@ print(measurement_setups(colorings(2)))
 print(len(p_2obs[0]))
 #print(p_2obs)
 
+print("SIGMA X")
+print(sigmax().eigenstates())
+print("SIGMA Y")
+print(sigmay().eigenstates())
+print("SIGMA Z")
+print(sigmaz().eigenstates())
 
 
-'''
-for i in range(k):
-	rand = random.uniform(0, 1)
-	cumulated_probability = 0
-	for j in range(len(expectations)):
-		cumulated_probability += expectations[j]
-		if rand < cumulated_probability:
-			simulated_statistic.append(j)
-			break
+print("SIGMA X TENSOR ID")
+#print(tensor(qeye(2), sigmax()).eigenstates())
+print(tensor(pauli_projection_dict['X'][0], qeye(2)).eigenstates())
+
+print(M2)
 
 print(simulated_statistic)
-'''
+
+#Convert simulated statistics to 2-qubit statistics
+#Find the coloring where the colors of q1 and q2 are different
+def find_statistic(statistics, q1, q2):
+	q_setup = None
+	col_idx = 0
+	setup_idx = 0
+	for i in range(len(measurement_setups(colorings(n)))):
+		for j in range(len(measurement_setups(colorings(n))[i])):
+			if measurement_setups(colorings(n))[i][j][q1] != measurement_setups(colorings(n))[i][j][q2]:
+				q_setup = measurement_setups(colorings(n))[i][j]
+				col_idx = i
+				setup_idx = j
+				break
+		if q_setup:
+			break
+	return q_setup, col_idx, setup_idx
+
+
+
+
+
+print(measurement_setups(colorings(n)))
+
+print(find_statistic(simulated_statistic, 0, 3))
+
+part_stat = find_statistic(simulated_statistic, 0, 3)
+
+print(simulated_statistic[part_stat[1]][part_stat[2]])
+
+part_sim_stat = simulated_statistic[part_stat[1]][part_stat[2]]
+
+
+#Convert simulated statistics to 2-qubit statistics
+def convert_statistics(statistics, q1, q2):
+	conv_stat = []
+	for i in range(len(statistics)):
+		s = M[statistics[i]]
+		c_s = s[q1] + s[q2]
+		conv_stat.append(M2.index(c_s))
+	return conv_stat
+
+print(convert_statistics(part_sim_stat, 0, 3))
+print(M)
+print(M2)
