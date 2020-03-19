@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 
 
 #Number of qubits
-n = 4
+n = 3
 
 #Number of copies
-k = 160
+k = 2000
 
 #W state of N qubits
 w_vec = []
@@ -232,7 +232,7 @@ def maximum_likelihood(p):
 	max_sum = 0
 	for i in range(len(m_obs2)):
 		max_sum += frequencies.count(i)*np.log(np.real(np.trace(m_obs2[i] * density_matrix)))
-	return np.real(-max_sum / k)
+	return np.real(-max_sum)
 
 
 args = list(np.random.uniform(0, 1, 4)) + list(np.random.uniform(-1, 1, 12))
@@ -266,10 +266,10 @@ for i in range(1,16):
 #print(bnds)
 
 cons = ({'type': 'eq', 'fun': lambda x: 1 - np.trace(qubit2density(x))},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0])},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1])},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0]) - 10e-6},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1]) - 10e-6},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2]) - 10e-6},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3]) - 10e-6})
 
 
 
@@ -298,6 +298,13 @@ print(partial_W.eigenstates())
 print(fidelity(partial_W, sol_den))
 
 print(sol_den.tr())
+
+print(maximum_likelihood(density_to_vector(partial_W)))
+print(maximum_likelihood(density_to_vector(sol_den)))
+
+print(density_to_vector(partial_W))
+print(reconstrution['x'])
+
 
 
 true_frequencies = frequencies
@@ -331,7 +338,10 @@ for i in range(start, k, step):
 	args = density_to_vector(rand_dm(4))
 	reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
 										bounds=bnds, constraints=cons, 
-										method='SLSQP')
+										method='SLSQP', options={'maxiter': 5000, 'disp': True})
+	if reconstrution['message'] != "Optimization terminated successfully.":
+		print(reconstrution['message'])
+		continue
 	sol_den = Qobj(qubit2density(reconstrution['x']))
 	fids.append(fidelity(partial_W, sol_den))
 	k_indexes.append(last_index)
