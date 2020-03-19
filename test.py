@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 
 
 #Number of qubits
-n = 3
+n = 4
 
 #Number of copies
-k = 2500
+k = 160
 
 #W state of N qubits
 w_vec = []

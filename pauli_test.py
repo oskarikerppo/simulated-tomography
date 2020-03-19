@@ -14,7 +14,7 @@ random.seed(1)
 n = 4
 
 #Number of copies
-k = 100
+copies = 5000
 
 #W state of N qubits
 w_vec = []
@@ -119,7 +119,7 @@ def colorings(n):#n is number of qubits as int
 print(colorings(n))
 
 def measurement_setups(colorings):
-	measurements = []
+	measurements = [[[i for j in range(n)] for i in 'XYZ']]
 	for coloring in colorings:
 		col_mes = []
 		for perm in permutations('XYZ'):
@@ -149,6 +149,7 @@ print(M)
 
 
 M2 = ["".join(item) for item in itertools.product("01", repeat=2)]
+M1 = ["".join(item) for item in itertools.product("01", repeat=1)]
 
 
 def pauli_setups2(mes_setups):
@@ -164,11 +165,12 @@ def pauli_setups2(mes_setups):
 		mes.append(color_mes)
 	return mes
 
-def pauli_2qubit_setups(mes_setups):
+def pauli_2qubit_setups(mes_setups, q1, q2):
 	mes = []
 	for coloring in mes_setups:
 		color_mes = []
 		for col_mes in coloring:
+			col_mes = [col_mes[q1], col_mes[q2]]
 			projection_bases = [pauli_projection_dict[k] for k in col_mes]
 			effects = []
 			for i in range(len(M2)):
@@ -214,7 +216,7 @@ print(f)
 
 
 probabilities = []
-for i in range(len(colorings(n))):
+for i in range(len(measurement_setups(colorings(n)))):
 	col_probs = []
 	for j in range(len(measurement_setups(colorings(n))[i])):
 		probs= []
@@ -225,15 +227,16 @@ for i in range(len(colorings(n))):
 print(probabilities)
 
 
+def num_of_setups(n):
+	return 6 * np.ceil(np.log(n)/np.log(3)) + 3
+
 #Simulate outcome statistics
 simulated_statistic = []
-k = 1000
 
-for i, coloring in enumerate(colorings(n)):
-	c_copies = k / len(colorings(n))
+for i, coloring in enumerate(measurement_setups(colorings(n))):
 	col_stat = []
 	for j, setup in enumerate(measurement_setups(colorings(n))[i]):
-		setup_copies = c_copies / len(measurement_setups(colorings(n))[i])
+		setup_copies = copies / num_of_setups(n)
 		setup_stat = []
 		for c in range(int(setup_copies)):
 			rand = random.uniform(0, 1)
@@ -247,16 +250,16 @@ for i, coloring in enumerate(colorings(n)):
 	simulated_statistic.append(col_stat)
 
 print(simulated_statistic)
-print(len(simulated_statistic))
-print(len(simulated_statistic[0]))
-print(len(simulated_statistic[0][0]))
-print(simulated_statistic[0][0])
+#print(len(simulated_statistic))
+#print(len(simulated_statistic[0]))
+#print(len(simulated_statistic[0][0]))
+#print(simulated_statistic[0][0])
 			
 
 
 
 
-p_2obs = pauli_2qubit_setups(measurement_setups(colorings(2)))
+p_2obs = pauli_2qubit_setups(measurement_setups(colorings(n)), 0, 3)
 print(colorings(2))
 print(measurement_setups(colorings(2)))
 print(len(p_2obs[0]))
@@ -287,7 +290,7 @@ def find_statistic(statistics, q1, q2):
 	for i in range(len(measurement_setups(colorings(n)))):
 		for j in range(len(measurement_setups(colorings(n))[i])):
 			if measurement_setups(colorings(n))[i][j][q1] != measurement_setups(colorings(n))[i][j][q2]:
-				q_setup = measurement_setups(colorings(n))[i][j]
+				q_setup = measurement_setups(colorings(n))[i]
 				col_idx = i
 				setup_idx = j
 				break
@@ -319,6 +322,250 @@ def convert_statistics(statistics, q1, q2):
 		conv_stat.append(M2.index(c_s))
 	return conv_stat
 
+#Convert simulated statistics to 2-qubit statistics
+def convert_single_statistics(statistics, q1):
+	conv_stat = []
+	for i in range(len(statistics)):
+		s = M[statistics[i]]
+		c_s = s[q1]
+		conv_stat.append(M1.index(c_s))
+	return conv_stat
+
+
 print(convert_statistics(part_sim_stat, 0, 3))
 print(M)
+print(M1)
 print(M2)
+print(convert_single_statistics(part_sim_stat, 0))
+print(convert_single_statistics(part_sim_stat, 1))
+
+print(part_stat[1])
+
+#Parametrize 2-qubit density matrices, 16 parameters
+def qubit2density(p):#p is list of 16 numbers
+	d = np.zeros([4, 4], dtype=complex)
+	p = list(p)
+	#Set diagonal elements
+	for i in range(4):
+		d[i][i] = p.pop(0)
+	#set real elements
+	for i in range(3):
+		for j in range(i+1, 4):
+			elem = p.pop(0)
+			d[i][j] = elem
+			d[j][i] = elem
+	#set complex elements
+	for i in range(3):
+		for j in range(i+1, 4):
+			elem = p.pop(0)
+			d[i][j] += elem*(-1j)
+			d[j][i] += elem*(1j)
+	return d
+
+
+def density_to_vector(density):#p is list of 16 numbers
+	d = np.array(density, dtype=complex)
+	p = []
+	#Set diagonal elements
+	for i in range(4):
+		#d[i][i] = p.pop(0)
+		p.append(np.real(d[i][i]))
+	#set real elements
+	for i in range(3):
+		for j in range(i+1, 4):
+			p.append(np.real(d[i][j]))
+	#set complex elements
+	for i in range(3):
+		for j in range(i+1, 4):
+			p.append(np.imag(d[i][j]))
+	return tuple(p)
+
+def maximum_likelihood(p, observable, freqs, cops):
+	density_matrix = qubit2density(p)
+	max_sum = 0
+	for i in range(len(observable)):
+		max_sum += freqs.count(i)*np.log(np.real(np.trace(observable[i] * density_matrix)))
+	return np.real(-max_sum / cops)
+
+
+print(part_stat)
+#print(p_obs2[part_stat[1]][0])
+args = density_to_vector(rand_dm(4))
+print(len(p_2obs[1][0]))
+x = maximum_likelihood(args, p_2obs[part_stat[1]][1], 
+						convert_statistics(simulated_statistic[1][1], 0, 3), 
+						len(convert_statistics(simulated_statistic[1][1], 0, 3)))
+
+print(x)
+
+
+#print(tensor(qeye(2), sigmax()).eigenstates()[1])
+
+#for state in tensor(qeye(2), sigmax()).eigenstates()[1]:
+#	print(state*state.dag())
+
+#print("------------------------------")
+
+for state in pauli_projection_dict['X']:
+	print(tensor(qeye(2), state))
+
+
+p_1obs = []
+
+
+for p in 'XYZ':
+	temp_obs = []
+	for state in pauli_projection_dict[p]:
+		temp_obs.append(tensor(state, qeye(2)))
+	p_1obs.append(temp_obs)
+
+for p in 'XYZ':
+	temp_obs = []
+	for state in pauli_projection_dict[p]:
+		temp_obs.append(tensor(qeye(2), state))
+	p_1obs.append(temp_obs)
+
+
+
+
+args = density_to_vector(rand_dm(4))
+
+def total_maximum_likelihood(args):
+	max_sum = 0
+	'''
+	max_sum += maximum_likelihood(args, p_1obs[0], 
+									convert_single_statistics(simulated_statistic[0][0], 0), 
+									copies / num_of_setups(n))
+	max_sum += maximum_likelihood(args, p_1obs[1], 
+									convert_single_statistics(simulated_statistic[0][1], 0), 
+									copies / num_of_setups(n))
+	max_sum += maximum_likelihood(args, p_1obs[2], 
+									convert_single_statistics(simulated_statistic[0][2], 0), 
+									copies / num_of_setups(n))
+	max_sum += maximum_likelihood(args, p_1obs[3], 
+									convert_single_statistics(simulated_statistic[0][0], 1), 
+									copies / num_of_setups(n))
+	max_sum += maximum_likelihood(args, p_1obs[4], 
+									convert_single_statistics(simulated_statistic[0][1], 1), 
+									copies / num_of_setups(n))
+	max_sum += maximum_likelihood(args, p_1obs[5], 
+									convert_single_statistics(simulated_statistic[0][2], 1), 
+									copies / num_of_setups(n))
+	'''
+	for i, setup in enumerate(p_obs2[part_stat[1]]):		
+		max_sum += maximum_likelihood(args, p_2obs[part_stat[1]][i], 
+						convert_statistics(simulated_statistic[part_stat[1]][i], 0, 3), 
+						len(convert_statistics(simulated_statistic[part_stat[1]][i], 0, 3)))
+
+
+
+	return max_sum
+
+
+
+print(total_maximum_likelihood(args))
+
+
+bnds = ((0,1),)
+for i in range(1,16):
+	if i < 4:
+		bnds += ((0,1),)
+	else:
+		bnds += ((-1,1),)
+
+#print(bnds)
+
+cons = ({'type': 'eq', 'fun': lambda x: 1 - np.trace(qubit2density(x))},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0])},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1])},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
+
+
+
+
+
+
+
+
+reconstrution = scipy.optimize.minimize(total_maximum_likelihood, args, 
+										bounds=bnds, constraints=cons, 
+										method='SLSQP', options={'maxiter': 250, 'disp': True})
+print(reconstrution)
+
+sol_den = Qobj(qubit2density(reconstrution['x']))
+
+partial_W = Qobj(np.array(w_state.ptrace([0,3])))
+
+
+print("-----------------RECONSTRUCTED------------")
+print(sol_den)
+print(sol_den.eigenstates())
+
+print("-----------------PARTIAL W-----------------")
+print(partial_W)
+print(partial_W.eigenstates())
+
+
+print(fidelity(partial_W, sol_den))
+
+print(sol_den.tr())
+
+
+
+true_statistics = simulated_statistic
+
+fids = []
+k_indexes = []
+
+res = 10
+'''
+for i in range(5, int(k / res), int(k/(res*25))):
+	print("-------------------PRELIMINARY ROUND {} of {} -----------------".format(i, int(k / res)))
+	last_index = i
+	frequencies = true_frequencies[:last_index]
+	args = density_to_vector(rand_dm(4))
+	reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
+										bounds=bnds, constraints=cons, 
+										method='SLSQP')
+	sol_den = Qobj(qubit2density(reconstrution['x']))
+	fids.append(fidelity(partial_W, sol_den))
+	k_indexes.append(last_index)
+'''
+
+step = 10
+start = 5
+for i in range(start, int(copies / num_of_setups(n)), step):
+	print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(int(copies / num_of_setups(n))/step)))
+	last_index = i
+	for i in range(len(simulated_statistic)):
+		for j in range(len(simulated_statistic[i])):
+			simulated_statistic[i][j] = true_statistics[i][j][:last_index]
+	args = density_to_vector(rand_dm(4))
+	reconstrution = scipy.optimize.minimize(total_maximum_likelihood, args, 
+										bounds=bnds, constraints=cons, 
+										method='SLSQP', options={'maxiter': 250, 'disp': False})
+	sol_den = Qobj(qubit2density(reconstrution['x']))
+	fids.append(fidelity(partial_W, sol_den))
+	k_indexes.append(last_index)
+
+k_indexes = np.array(k_indexes)
+fids = np.array(fids)
+
+
+plt.scatter(k_indexes, fids)
+
+#Function for fitting
+def func(x, a, b, c):
+	return a - b / np.log(c * x)
+ 
+#popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids, bounds=((0, -np.inf, -np.inf), (1, np.inf, np.inf)))
+#print(popt)
+#print(pcov)
+#fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
+
+
+
+#plt.plot(k_indexes, func(k_indexes, *popt))
+
+plt.show()
