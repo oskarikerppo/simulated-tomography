@@ -10,10 +10,10 @@ import matplotlib.pyplot as plt
 
 
 #Number of qubits
-n = 3
+n = 4
 
 #Number of copies
-k = 2000
+k = 1000
 
 #W state of N qubits
 w_vec = []
@@ -59,6 +59,7 @@ E3 = rho([-1,1,-1])/2
 E4 = rho([-1,-1,1])/2
 
 E = [E1, E2, E3, E4]
+
 
 
 
@@ -115,7 +116,7 @@ print(M[simulated_statistic[0]])
 
 #Reconstruct 2-qubit states from outcome statistic
 
-partial_W = Qobj(np.array(w_state.ptrace([0,1])))
+partial_W = Qobj(np.array(w_state.ptrace([1,2])))
 #print(partial_W)
 
 
@@ -225,14 +226,16 @@ def convert_statistics(statistics, q1, q2):
 print(simulated_statistic)
 print(convert_statistics(simulated_statistic, 0, 1))
 
-frequencies = convert_statistics(simulated_statistic, 0, 1)
+frequencies = convert_statistics(simulated_statistic, 1, 2)
 
 def maximum_likelihood(p):
 	density_matrix = qubit2density(p)
 	max_sum = 0
 	for i in range(len(m_obs2)):
-		max_sum += frequencies.count(i)*np.log(np.real(np.trace(m_obs2[i] * density_matrix)))
-	return np.real(-max_sum)
+		s = np.real(np.trace(m_obs2[i] * density_matrix))
+		if s != 0:
+			max_sum += frequencies.count(i)*np.log(s)
+	return np.real(-max_sum/len(frequencies))
 
 
 args = list(np.random.uniform(0, 1, 4)) + list(np.random.uniform(-1, 1, 12))
@@ -266,10 +269,10 @@ for i in range(1,16):
 #print(bnds)
 
 cons = ({'type': 'eq', 'fun': lambda x: 1 - np.trace(qubit2density(x))},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0]) - 10e-6},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1]) - 10e-6},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2]) - 10e-6},
-		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3]) - 10e-6})
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0])},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1])},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
+		{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
 
 
 
@@ -329,8 +332,8 @@ for i in range(5, int(k / res), int(k/(res*25))):
 	k_indexes.append(last_index)
 '''
 
-step = 20
-start = 50
+step = 15
+start = 15
 for i in range(start, k, step):
 	print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(k/step)))
 	last_index = i
@@ -338,15 +341,19 @@ for i in range(start, k, step):
 	args = density_to_vector(rand_dm(4))
 	reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
 										bounds=bnds, constraints=cons, 
-										method='SLSQP', options={'maxiter': 5000, 'disp': True})
+										method='SLSQP')#, options={'maxiter': 5000, 'disp': True})
 	if reconstrution['message'] != "Optimization terminated successfully.":
 		print(reconstrution['message'])
-		continue
+		#continue
 	sol_den = Qobj(qubit2density(reconstrution['x']))
 	fids.append(fidelity(partial_W, sol_den))
 	k_indexes.append(last_index)
-
+	print("------------------ FIDELITY ----------------------")
+	print(fidelity(partial_W, sol_den))
+	print(maximum_likelihood(density_to_vector(sol_den)))
+	print(maximum_likelihood(density_to_vector(partial_W)))
 k_indexes = np.array(k_indexes)
+k_indexes = k_indexes / 12
 fids = np.array(fids)
 
 

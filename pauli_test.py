@@ -14,11 +14,11 @@ from itertools import permutations
 n = 4
 
 #Observed pair
-q1 = 2
-q2 = 3
+q1 = 1
+q2 = 2
 
 #Number of copies
-copies = 100000
+copies = 1000
 
 #W state of N qubits
 w_vec = []
@@ -39,6 +39,7 @@ w_vec = sum(w_vec).unit()
 
 #Density matrix for W state
 w_state = w_vec * w_vec.dag()
+
 #print(w_state)
 
 #print("Eigenvalues and vectors of the W state")
@@ -390,20 +391,23 @@ def density_to_vector(density):#p is list of 16 numbers
 			p.append(np.imag(d[i][j]))
 	return tuple(p)
 
-def maximum_likelihood(density_matrix, observable, freqs, cops):
+last_index = len(simulated_statistic[0][0])
+
+def maximum_likelihood(density_matrix, observable, j, k, last_index):
 	max_sum = 0
+	stats = convert_statistics(simulated_statistic[j][k], q1, q2)[:last_index]
 	for i in range(len(observable)):
-		max_sum += freqs.count(i)*np.log(np.real(np.trace(observable[i] * density_matrix)))
-	return np.real(max_sum)
+		s = np.trace(observable[i] * density_matrix)
+		if s != 0:
+			max_sum += stats.count(i)*np.log(np.real(s))
+	return np.real(max_sum) / len(stats)
 
 
 print(part_stat)
 #print(p_obs2[part_stat[1]][0])
 args = qubit2density(density_to_vector(rand_dm(4)))
 print(len(p_2obs[1][0]))
-x = maximum_likelihood(args, p_2obs[part_stat[1]][1], 
-						convert_statistics(simulated_statistic[1][1], q1, q2), 
-						len(convert_statistics(simulated_statistic[1][1], q1, q2)))
+x = maximum_likelihood(args, p_2obs[part_stat[1]][1], 1, 1, last_index)
 
 print(x)
 
@@ -443,34 +447,27 @@ def total_maximum_likelihood(init_args):
 	density_matrix = qubit2density(init_args)
 
 	
-	max_sum += maximum_likelihood(density_matrix, p_1obs[0], 
-									convert_single_statistics(simulated_statistic[0][0], q1), 
-									copies)
-	max_sum += maximum_likelihood(density_matrix, p_1obs[1], 
-									convert_single_statistics(simulated_statistic[0][1], q1), 
-									copies)
-	max_sum += maximum_likelihood(density_matrix, p_1obs[2], 
-									convert_single_statistics(simulated_statistic[0][2], q1), 
-									copies)
-	max_sum += maximum_likelihood(density_matrix, p_1obs[3], 
+	max_sum += maximum_likelihood(density_matrix, p_2obs[0][0], 0, 0, last_index)
+	max_sum += maximum_likelihood(density_matrix, p_2obs[0][1], 0, 1, last_index)
+	max_sum += maximum_likelihood(density_matrix, p_2obs[0][2], 0, 2, last_index)
+	'''
+	max_sum += maximum_likelihood(density_matrix, p_2obs[3], 
 									convert_single_statistics(simulated_statistic[0][0], q2), 
-									copies)
-	max_sum += maximum_likelihood(density_matrix, p_1obs[4], 
+									copies / num_of_setups(n))
+	max_sum += maximum_likelihood(density_matrix, p_2obs[4], 
 									convert_single_statistics(simulated_statistic[0][1], q2), 
-									copies)
-	max_sum += maximum_likelihood(density_matrix, p_1obs[5], 
+									copies / num_of_setups(n))
+	max_sum += maximum_likelihood(density_matrix, p_2obs[5], 
 									convert_single_statistics(simulated_statistic[0][2], q2), 
-									copies)
-	
+									copies / num_of_setups(n))
+	'''
 	for i, setup in enumerate(p_2obs[part_stat[1]]):		
-		max_sum += maximum_likelihood(density_matrix, p_2obs[part_stat[1]][i], 
-						convert_statistics(simulated_statistic[part_stat[1]][i], q1, q2), 
-						copies)
+		max_sum += maximum_likelihood(density_matrix, p_2obs[part_stat[1]][i], part_stat[1], i, last_index)
 
 
 
 
-	return -max_sum
+	return -max_sum 
 
 
 print("TESTING")
@@ -537,7 +534,9 @@ print(total_maximum_likelihood(density_to_vector(sol_den)))
 print(density_to_vector(partial_W))
 print(reconstrution['x'])
 print(sol_den.eigenstates()[0])
-die
+
+
+
 true_statistics = simulated_statistic
 
 fids = []
@@ -558,26 +557,32 @@ for i in range(5, int(k / res), int(k/(res*25))):
 	k_indexes.append(last_index)
 '''
 
-step = 20
-start = 5
-for i in range(start, int(copies / num_of_setups(n)), step):
+
+print(int(copies / num_of_setups(n)))
+print(len(true_statistics[0][0]))
+
+
+step = 1
+start = 1
+for i in range(start, len(simulated_statistic[0][0]), step):
 	print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(int(copies / num_of_setups(n))/step)))
 	last_index = i
-	for i in range(len(simulated_statistic)):
-		for j in range(len(simulated_statistic[i])):
-			simulated_statistic[i][j] = true_statistics[i][j][:last_index]
+	print("Last index: ------------ {}".format(last_index))
+	print(int(copies / num_of_setups(n)))
 	args = density_to_vector(rand_dm(4))
 	reconstrution = scipy.optimize.minimize(total_maximum_likelihood, args, 
 										bounds=bnds, constraints=cons, 
-										method='SLSQP', options={'maxiter': 5000, 'disp': True})
+										method='SLSQP')#, options={'maxiter': 5000, 'disp': True})
 	if reconstrution['message'] != "Optimization terminated successfully.":
 		print(reconstrution['message'])
-		continue
+		#continue
 	sol_den = Qobj(qubit2density(reconstrution['x']))
 	fids.append(fidelity(partial_W, sol_den))
 	k_indexes.append(last_index)
 	print("------------------ FIDELITY ----------------------")
 	print(fidelity(partial_W, sol_den))
+	print(total_maximum_likelihood(density_to_vector(sol_den)))
+	print(total_maximum_likelihood(density_to_vector(partial_W)))
 
 k_indexes = np.array(k_indexes)
 fids = np.array(fids)
@@ -589,13 +594,23 @@ plt.scatter(k_indexes, fids)
 def func(x, a, b, c):
 	return a - b / np.log(c * x)
  
-#popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids, bounds=((0, -np.inf, -np.inf), (1, np.inf, np.inf)))
-#print(popt)
-#print(pcov)
-#fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
+success = False
+
+while not success:
+	try:
+		popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids, bounds=((0, -np.inf, -np.inf), (1, np.inf, np.inf)))
+		success = True
+	except:
+		k_indexes = k_indexes[1:]
+		fids = fids[1:]
+
+
+print(popt)
+print(pcov)
+fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
 
 
 
-#plt.plot(k_indexes, func(k_indexes, *popt))
+plt.plot(k_indexes, func(k_indexes, *popt))
 
 plt.show()
