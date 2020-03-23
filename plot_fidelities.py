@@ -6,6 +6,47 @@ import random
 import matplotlib
 import matplotlib.pyplot as plt
 import pickle
+import simulate_sic
+
+
+
+#Parameters for programs
+#Number of qubits
+n = 3
+
+#Number of copies
+k = 675
+
+q1 = 0
+q2 = 2
+
+#W state of N qubits
+w_vec = []
+for i in range(n):
+	vec = []
+	for j in range(n):
+		if i == j:
+			vec.append(basis(2, 0))
+		else:
+			vec.append(basis(2, 1))
+	#print(tensor(vec))
+	w_vec.append(tensor(vec))		
+w_vec = sum(w_vec).unit()
+
+#Density matrix for W state
+w_state = w_vec * w_vec.dag()
+
+
+step = 9
+start = 9
+
+
+
+
+simulate_sic.main(n, k, q1, q2, w_state, start, step)
+
+die
+
 
 
 matplotlib.rc('text', usetex = True)
