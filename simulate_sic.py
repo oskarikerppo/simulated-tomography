@@ -159,13 +159,13 @@ def main(n, k, q1, q2, w_state, start, step, seed=False):
 	k_indexes = []
 
 	for i in range(start, k, step):
-		print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(k/step)))
+		#print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(k/step)))
 		last_index = i
 		frequencies = true_frequencies[:last_index]
 		init_guess = density_to_vector(rand_dm(4))
 		reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_obs2, frequencies),
 											bounds=bnds, constraints=cons, 
-											method='SLSQP', options={'maxiter': 5000, 'disp': True})
+											method='SLSQP', options={'maxiter': 5000, 'disp': False})
 		'''
 		if reconstrution['message'] != "Optimization terminated successfully.":
 			print(reconstrution['message'])
@@ -174,8 +174,8 @@ def main(n, k, q1, q2, w_state, start, step, seed=False):
 		sol_den = Qobj(qubit2density(reconstrution['x']))
 		fids.append(fidelity(partial_W, sol_den))
 		k_indexes.append(last_index)
-		print("------------------ FIDELITY ----------------------")
-		print(fidelity(partial_W, sol_den))
+		#print("------------------ FIDELITY ----------------------")
+		#print(fidelity(partial_W, sol_den))
 		#print(maximum_likelihood(density_to_vector(sol_den)))
 		#print(maximum_likelihood(density_to_vector(partial_W)))
 
