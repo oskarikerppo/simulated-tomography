@@ -5,20 +5,21 @@ import itertools
 import random
 import matplotlib.pyplot as plt
 from itertools import permutations
+import pickle
 
 
 #random.seed(1)
 
 
 #Number of qubits
-n = 4
+n = 3
 
 #Observed pair
-q1 = 1
+q1 = 0
 q2 = 2
 
 #Number of copies
-copies = 1000
+copies = 675
 
 #W state of N qubits
 w_vec = []
@@ -572,7 +573,7 @@ for i in range(start, len(simulated_statistic[0][0]), step):
 	args = density_to_vector(rand_dm(4))
 	reconstrution = scipy.optimize.minimize(total_maximum_likelihood, args, 
 										bounds=bnds, constraints=cons, 
-										method='SLSQP')#, options={'maxiter': 5000, 'disp': True})
+										method='SLSQP', options={'maxiter': 5000, 'disp': True})
 	if reconstrution['message'] != "Optimization terminated successfully.":
 		print(reconstrution['message'])
 		#continue
@@ -614,3 +615,16 @@ fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
 plt.plot(k_indexes, func(k_indexes, *popt))
 
 plt.show()
+
+
+try:
+	with open(r'Results\results_pauli.pkl', 'rb') as f:
+		results = pickle.load(f)
+	results.append([k_indexes, fids])
+	with open(r'Results\results_pauli.pkl', 'wb') as f:
+		pickle.dump(results, f)
+except:
+	results = []
+	results.append([k_indexes, fids])
+	with open(r'Results\results_pauli.pkl', 'wb') as f:
+		pickle.dump(results, f)

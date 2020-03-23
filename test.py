@@ -4,16 +4,20 @@ import scipy
 import itertools
 import random
 import matplotlib.pyplot as plt
+import pickle
 
 
 #random.seed(1)
 
 
 #Number of qubits
-n = 4
+n = 3
 
 #Number of copies
-k = 1000
+k = 675
+
+q1 = 0
+q2 = 2
 
 #W state of N qubits
 w_vec = []
@@ -116,7 +120,7 @@ print(M[simulated_statistic[0]])
 
 #Reconstruct 2-qubit states from outcome statistic
 
-partial_W = Qobj(np.array(w_state.ptrace([1,2])))
+partial_W = Qobj(np.array(w_state.ptrace([q1, q2])))
 #print(partial_W)
 
 
@@ -226,7 +230,7 @@ def convert_statistics(statistics, q1, q2):
 print(simulated_statistic)
 print(convert_statistics(simulated_statistic, 0, 1))
 
-frequencies = convert_statistics(simulated_statistic, 1, 2)
+frequencies = convert_statistics(simulated_statistic, q1, q2)
 
 def maximum_likelihood(p):
 	density_matrix = qubit2density(p)
@@ -332,8 +336,8 @@ for i in range(5, int(k / res), int(k/(res*25))):
 	k_indexes.append(last_index)
 '''
 
-step = 15
-start = 15
+step = 9
+start = 9
 for i in range(start, k, step):
 	print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(k/step)))
 	last_index = i
@@ -341,7 +345,7 @@ for i in range(start, k, step):
 	args = density_to_vector(rand_dm(4))
 	reconstrution = scipy.optimize.minimize(maximum_likelihood, args, 
 										bounds=bnds, constraints=cons, 
-										method='SLSQP')#, options={'maxiter': 5000, 'disp': True})
+										method='SLSQP', options={'maxiter': 5000, 'disp': True})
 	if reconstrution['message'] != "Optimization terminated successfully.":
 		print(reconstrution['message'])
 		#continue
@@ -353,7 +357,7 @@ for i in range(start, k, step):
 	print(maximum_likelihood(density_to_vector(sol_den)))
 	print(maximum_likelihood(density_to_vector(partial_W)))
 k_indexes = np.array(k_indexes)
-k_indexes = k_indexes / 12
+k_indexes = k_indexes
 fids = np.array(fids)
 
 
@@ -373,3 +377,15 @@ print(pcov)
 plt.plot(k_indexes, func(k_indexes, *popt))
 
 plt.show()
+
+try:
+	with open(r'Results\results_sic.pkl', 'rb') as f:
+		results = pickle.load(f)
+	results.append([k_indexes, fids])
+	with open(r'Results\results_sic.pkl', 'wb') as f:
+		pickle.dump(results, f)
+except:
+	results = []
+	results.append([k_indexes, fids])
+	with open(r'Results\results_sic.pkl', 'wb') as f:
+		pickle.dump(results, f)
