@@ -1,5 +1,6 @@
 from qutip import *
 import numpy as np
+import sys
 import scipy
 import itertools
 import random
@@ -16,13 +17,15 @@ np.seterr(all='ignore')
 
 #Parameters for programs
 #Number of qubits
-n = 3
+n = 5
 
 #Number of copies
-k = 2000
+k = 15*20
+#Number of runs
+num_of_runs = 5
 
-q1 = 0
-q2 = 2
+q1 = 3
+q2 = 4
 
 #W state of N qubits
 w_vec = []
@@ -48,10 +51,6 @@ start = num_of_pauli_setups
 step_pauli = 1
 start_pauli = 1
 
-
-#Number of runs
-num_of_runs = 12
-
 args = [(n, k, q1, q2, w_state, start, step, False) for x in range(num_of_runs)]
 
 args_pauli = [(n, k, q1, q2, w_state, start_pauli, step_pauli, False) for x in range(num_of_runs)]
@@ -75,7 +74,7 @@ if __name__ == "__main__":
 		p = Pool()
 		for i, simulation in enumerate(p.imap_unordered(star_sic, args, 1)):
 			print("SIC SIMULATION ROUND {} OF {}".format(i, num_of_runs))
-			
+		p.terminate()
 		with open(r'Results\results_sic.pkl', 'rb') as f:
 			results = pickle.load(f)
 
@@ -102,7 +101,7 @@ if __name__ == "__main__":
 		p = Pool()
 		for i, simulation in enumerate(p.imap_unordered(star_pauli, args_pauli, 1)):
 			print("PAULI SIMULATION ROUND {} OF {}".format(i, num_of_runs))
-			
+		p.terminate()
 		with open(r'Results\results_pauli.pkl', 'rb') as f:
 			results_pauli = pickle.load(f)
 
@@ -164,3 +163,4 @@ if __name__ == "__main__":
 	plt.legend(loc='lower right')
 
 	plt.show()
+	sys.exit()
