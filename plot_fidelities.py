@@ -2,6 +2,7 @@ from qutip import *
 import numpy as np
 import sys
 import scipy
+from scipy import stats
 import itertools
 import random
 import matplotlib
@@ -17,15 +18,23 @@ np.seterr(all='ignore')
 
 #Parameters for programs
 #Number of qubits
-n = 5
+n = 3
 
 #Number of copies
-k = 15*20
+k = 2000
 #Number of runs
-num_of_runs = 5
+num_of_runs = 50
 
-q1 = 3
-q2 = 4
+q1 = 0
+q2 = 1
+
+num_of_pauli_setups = int(simulate_pauli.num_of_setups(n))
+
+step = num_of_pauli_setups
+start = num_of_pauli_setups
+
+step_pauli = 1
+start_pauli = 1
 
 #W state of N qubits
 w_vec = []
@@ -43,13 +52,7 @@ w_vec = sum(w_vec).unit()
 #Density matrix for W state
 w_state = w_vec * w_vec.dag()
 
-num_of_pauli_setups = int(simulate_pauli.num_of_setups(n))
 
-step = num_of_pauli_setups
-start = num_of_pauli_setups
-
-step_pauli = 1
-start_pauli = 1
 
 args = [(n, k, q1, q2, w_state, start, step, False) for x in range(num_of_runs)]
 
@@ -90,6 +93,11 @@ if __name__ == "__main__":
 		for j in range(len(fids[i])):
 			average_fid[j] += fids[i][j] / num_of_runs
 
+	#Standard deviation
+	std = []
+	for j in range(len(fids[0])):
+		fids_j = [fids[i][j] for i in range(len(fids))]
+		std.append(stats.sem(fids_j))
 
 	k_indexes = results[0][0]
 
@@ -117,6 +125,12 @@ if __name__ == "__main__":
 		for j in range(len(fids_pauli[i])):
 			average_fid_pauli[j] += fids_pauli[i][j] / num_of_runs_pauli
 
+	#Standard deviation pauli
+	std_pauli = []
+	for j in range(len(fids_pauli[0])):
+		fids_j = [fids_pauli[i][j] for i in range(len(fids_pauli))]
+		std_pauli.append(stats.sem(fids_j))
+
 
 	k_indexes_pauli = results_pauli[0][0] * num_of_pauli_setups
 
@@ -134,6 +148,8 @@ if __name__ == "__main__":
 	print(pcov)
 	#fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
 	plt.plot(k_indexes, func(k_indexes, *popt))
+
+	plt.errorbar(k_indexes, average_fid, yerr=std, color="blue", barsabove=True)
 
 	#PAULI MEASUREMENT
 	plt.scatter(k_indexes_pauli, average_fid_pauli, c='r', label="Pauli setup")
@@ -155,7 +171,7 @@ if __name__ == "__main__":
 	#fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
 	plt.plot(real_k_indexes_pauli, func(real_k_indexes_pauli, *popt))
 
-
+	plt.errorbar(real_k_indexes_pauli, average_fid_pauli, yerr=std_pauli, color="red", barsabove=True)
 
 	plt.xlabel("Number of measurements")
 	plt.ylabel("Fidelity")
