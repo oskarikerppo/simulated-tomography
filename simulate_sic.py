@@ -77,7 +77,7 @@ def maximum_likelihood(p, m_obs2, frequencies):
 def func(x, a, b, c):
 	return a - b / np.log(c * x)
  
-def main(n, k, q1, q2, w_state, start, step, seed=False):
+def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False):
 	if seed:
 		random.seed(seed)
 
@@ -192,15 +192,15 @@ def main(n, k, q1, q2, w_state, start, step, seed=False):
 	#plt.show()
 
 	try:
-		with open(r'Results\results_sic.pkl', 'rb') as f:
+		with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'rb') as f:
 			results = pickle.load(f)
 		results.append([k_indexes, fids])
-		with open(r'Results\results_sic.pkl', 'wb') as f:
+		with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
 			pickle.dump(results, f)
 	except:
 		results = []
 		results.append([k_indexes, fids])
-		with open(r'Results\results_sic.pkl', 'wb') as f:
+		with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
 			pickle.dump(results, f)
 
 

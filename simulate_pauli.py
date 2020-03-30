@@ -199,7 +199,7 @@ def func(x, a, b, c):
  
 
 
-def main(n, copies, q1, q2, w_state, start, step, seed=False):
+def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False):
 
 	if seed:
 		random.seed(seed)
@@ -230,7 +230,8 @@ def main(n, copies, q1, q2, w_state, start, step, seed=False):
 		for j in range(len(measurement_setups(colorings(n), n)[i])):
 			probs= []
 			for k in range(len(p_obs2[i][j])):
-				probs.append((w_state * p_obs2[i][j][k]).tr())
+				p = (w_state * p_obs2[i][j][k]).tr()
+				probs.append(np.real(p))
 			col_probs.append(probs)
 		probabilities.append(col_probs)
 
@@ -295,7 +296,7 @@ def main(n, copies, q1, q2, w_state, start, step, seed=False):
 	fids = []
 	k_indexes = []
 
-	for i in range(start, len(simulated_statistic[0][0]), step):
+	for i in range(start, len(simulated_statistic[0][0]) + 1, step):
 		#print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(int(copies / num_of_setups(n))/step)))
 		last_index = i
 		#print("Last index: ------------ {}".format(last_index))
@@ -335,15 +336,14 @@ def main(n, copies, q1, q2, w_state, start, step, seed=False):
 
 	#plt.show()
 
-
 	try:
-		with open(r'Results\results_pauli.pkl', 'rb') as f:
+		with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'rb') as f:
 			results = pickle.load(f)
 		results.append([k_indexes, fids])
-		with open(r'Results\results_pauli.pkl', 'wb') as f:
+		with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
 			pickle.dump(results, f)
 	except:
 		results = []
 		results.append([k_indexes, fids])
-		with open(r'Results\results_pauli.pkl', 'wb') as f:
+		with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
 			pickle.dump(results, f)
