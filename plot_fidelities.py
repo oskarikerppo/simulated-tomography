@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import scipy
 from scipy import stats
+from scipy import integrate
 import itertools
 import random
 import os
@@ -23,12 +24,12 @@ np.seterr(all='ignore')
 #Parameters for programs
 
 #Number of qubits
-n = 3
+n = 4
 
 #Number of copies
-k = 300
+k = 1500
 #Number of runs
-num_of_runs = 5
+num_of_runs = 20
 
 q1 = 1
 q2 = 2
@@ -36,7 +37,7 @@ q2 = 2
 state_name = "GHZ" #GHZ of W
 
 #new plots
-new_plots = True
+new_plots = False
 project_path = os.path.abspath(os.getcwd())
 simulation_files = [f for f in listdir(project_path + r'\Results') if isfile(join(project_path + r'\Results', f))]
 
@@ -193,7 +194,7 @@ if __name__ == "__main__":
 
 	fids_pauli = [x[1] for x in results_pauli]
 
-
+	'''
 	print(fids)
 	print(len(fids))
 	print(len(fids[1]))
@@ -201,7 +202,7 @@ if __name__ == "__main__":
 	print(fids_pauli)
 	print(len(fids_pauli))
 	print(len(fids_pauli[0]))
-
+	'''
 	for i in range(len(fids_pauli)):
 		print(len(fids_pauli[i]))
 
@@ -218,20 +219,27 @@ if __name__ == "__main__":
 
 
 	k_indexes_pauli = results_pauli[0][0] * num_of_pauli_setups
-
+	'''
 	print(k_indexes)
 	print(k_indexes_pauli)
-
+	'''
 	#Plots
 	#SIC-POVM
 	plt.scatter(k_indexes, average_fid, c='b', label="SIC-POVM")
 
 	#Function for fitting
 	def func(x, a, b, c):
-		return a - b / np.log(c * x)
+		return x / (a + b * x**c)**(1 / c)
+
+	#print(func([0,1,2,3], 1, 1, 2))
 	
-	popt, pcov = scipy.optimize.curve_fit(func, k_indexes, average_fid, 
-											bounds=((-np.inf, -np.inf, -np.inf), (np.inf, np.inf, np.inf)))
+
+	popt, pcov = scipy.optimize.curve_fit(func, k_indexes, average_fid)#, 
+											#bounds=((-np.inf, -np.inf, -np.inf), 
+											#		(np.inf, np.inf, np.inf)))
+	
+	#bounds=((-np.inf, -np.inf), (np.inf, np.inf)))
+	#bounds=((-np.inf, -np.inf, -np.inf), (np.inf, np.inf, np.inf)))
 	print(popt)
 	print(pcov)
 	#fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
@@ -248,8 +256,9 @@ if __name__ == "__main__":
 	success = False
 	while not success:
 		try:
-			popt, pcov = scipy.optimize.curve_fit(func, k_indexes_pauli, average_fid_pauli, 
-													bounds=((-np.inf, -np.inf, -np.inf), (np.inf, np.inf, np.inf)))
+			popt, pcov = scipy.optimize.curve_fit(func, k_indexes_pauli, average_fid_pauli)#, 
+													#bounds=((-np.inf, -np.inf, -np.inf), 
+													#	(np.inf, np.inf, np.inf)))
 			success = True
 		except:
 			k_indexes_pauli = k_indexes_pauli[1:]
