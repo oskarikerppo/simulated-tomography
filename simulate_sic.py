@@ -81,6 +81,10 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 	if seed:
 		random.seed(seed)
 
+	calculate_average = False
+	if q1 == 0 and q2 == 0:
+		calculate_average = True
+
 	#SIC-POVM for qubit
 	E1 = rho([1,1,1])/2
 	E2 = rho([1,-1,-1])/2
@@ -121,7 +125,7 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 
 	#Reconstruct 2-qubit states from outcome statistic
 
-	partial_W = Qobj(np.array(w_state.ptrace([q1, q2])))
+	
 
 	#2-qubit optimization, maximum likelihood
 
@@ -135,7 +139,6 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 			effects.append(E[int(M2[i][j])])
 		m_obs2.append(tensor(effects))
 
-	frequencies = convert_statistics(simulated_statistic, q1, q2, M, M2)
 
 	#Random initial guess
 	args = density_to_vector(rand_dm(4))
@@ -153,90 +156,85 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
 			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
 
-	true_frequencies = frequencies
-
-	fids = []
-	k_indexes = []
-
-	for i in range(start, k, step):
-		#print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(k/step)))
-		last_index = i
-		frequencies = true_frequencies[:last_index]
-		init_guess = density_to_vector(rand_dm(4))
-		reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_obs2, frequencies),
-											bounds=bnds, constraints=cons, 
-											method='SLSQP', options={'maxiter': 5000, 'disp': False})
-		'''
-		if reconstrution['message'] != "Optimization terminated successfully.":
-			print(reconstrution['message'])
-			#continue
-		'''
-		sol_den = Qobj(qubit2density(reconstrution['x']))
-		fids.append(fidelity(partial_W, sol_den))
-		k_indexes.append(last_index)
-		#print("------------------ FIDELITY ----------------------")
-		#print(fidelity(partial_W, sol_den))
-		#print(maximum_likelihood(density_to_vector(sol_den)))
-		#print(maximum_likelihood(density_to_vector(partial_W)))
-
-	k_indexes = np.array(k_indexes)
-	k_indexes = k_indexes
-	fids = np.array(fids)
-
-	#plt.scatter(k_indexes, fids)
-	#popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids, bounds=((0, -np.inf, -np.inf), (1, np.inf, np.inf)))
-	#print(popt)
-	#print(pcov)
-	#fit = np.poly1d(np.polyfit(k_indexes, np.log(fids), 1, w=np.sqrt(fids)))
-	#plt.plot(k_indexes, func(k_indexes, *popt))
-	#plt.show()
-
-	try:
-		with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'rb') as f:
-			results = pickle.load(f)
-		results.append([k_indexes, fids])
-		with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
-			pickle.dump(results, f)
-	except:
-		results = []
-		results.append([k_indexes, fids])
-		with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
-			pickle.dump(results, f)
 
 
+	if calculate_average:
+		avg_fids = []
+		for q_1 in range(n):
+			for q_2 in range(q_1 + 1, n):
 
+				partial_W = Qobj(np.array(w_state.ptrace([q_1, q_2])))
 
+				frequencies = convert_statistics(simulated_statistic, q_1, q_2, M, M2)
+				true_frequencies = frequencies
 
+				fids = []
+				k_indexes = []
 
+				for i in range(start, k, step):
+					#print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(k/step)))
+					last_index = i
+					frequencies = true_frequencies[:last_index]
+					init_guess = density_to_vector(rand_dm(4))
+					reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_obs2, frequencies),
+														bounds=bnds, constraints=cons, 
+														method='SLSQP', options={'maxiter': 5000, 'disp': False})
+					sol_den = Qobj(qubit2density(reconstrution['x']))
+					fids.append(fidelity(partial_W, sol_den))
+					k_indexes.append(last_index)
 
+				k_indexes = np.array(k_indexes)
+				fids = np.array(fids)
+				avg_fids.append(fids)
 
+		average_fid = np.zeros(len(avg_fids[0]))
+		for i in range(len(avg_fids)):
+			for j in range(len(avg_fids[i])):
+				average_fid[j] += avg_fids[i][j] / len(avg_fids)
 
+		fids = np.array(average_fid)
 
-'''
-Uxy = [[(m_obs[i] * m_obs[j]).tr() for j in range(len(m_obs))] for i in range(len(m_obs))]
+		try:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'rb') as f:
+				results = pickle.load(f)
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)
+		except:
+			results = []
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)
+	else:
+		partial_W = Qobj(np.array(w_state.ptrace([q1, q2])))
+		frequencies = convert_statistics(simulated_statistic, q1, q2, M, M2)
+		true_frequencies = frequencies
 
-Uxy_inv = np.linalg.inv(Uxy)
+		fids = []
+		k_indexes = []
 
-r_vec = []
-for i in range(len(m_obs)):
-	temp_sum = 0
-	for j in range(len(m_obs)):
-		temp_sum += np.real(Uxy_inv[i][j]*simulated_statistic.count(j) / k)
-	r_vec.append(temp_sum)
+		for i in range(start, k, step):
+			last_index = i
+			frequencies = true_frequencies[:last_index]
+			init_guess = density_to_vector(rand_dm(4))
+			reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_obs2, frequencies),
+													bounds=bnds, constraints=cons, 
+													method='SLSQP', options={'maxiter': 5000, 'disp': False})
+			sol_den = Qobj(qubit2density(reconstrution['x']))
+			fids.append(fidelity(partial_W, sol_den))
+			k_indexes.append(last_index)
 
-print(r_vec)
-reconstructed_state = sum([r_vec[i] * m_obs[i] for i in range(len(m_obs))])
-print(reconstructed_state)
+		k_indexes = np.array(k_indexes)
+		fids = np.array(fids)
 
-print("----------------- RECONSTRUCTED EIGENVALUES -----------------------")
-
-print(reconstructed_state.eigenstates())
-
-
-#Trace distance of original W state and reconsturcted n-qubit state
-fid = fidelity(w_state, reconstructed_state)
-print(fid)
-
-print(reconstructed_state.tr())
-
-'''
+		try:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'rb') as f:
+				results = pickle.load(f)
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)
+		except:
+			results = []
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)

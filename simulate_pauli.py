@@ -204,6 +204,10 @@ def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=
 	if seed:
 		random.seed(seed)
 
+	calculate_average = False
+	if q1 == 0 and q2 == 0:
+		calculate_average = True
+
 	#SIC-POVM for qubit
 	E1 = rho([1,1,1])/2
 	E2 = rho([1,-1,-1])/2
@@ -254,30 +258,6 @@ def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=
 			col_stat.append(setup_stat)
 		simulated_statistic.append(col_stat)
 
-	p_2obs = pauli_2qubit_setups(measurement_setups(colorings(n), n), q1, q2, M2)
-
-	part_stat = find_statistic(simulated_statistic, q1, q2, n)
-
-	part_sim_stat = simulated_statistic[part_stat[1]][part_stat[2]]
-
-	last_index = len(simulated_statistic[0][0])
-
-	'''
-	p_1obs = []
-
-	for p in 'XYZ':
-		temp_obs = []
-		for state in pauli_projection_dict[p]:
-			temp_obs.append(tensor(state, qeye(2)))
-		p_1obs.append(temp_obs)
-
-	for p in 'XYZ':
-		temp_obs = []
-		for state in pauli_projection_dict[p]:
-			temp_obs.append(tensor(qeye(2), state))
-		p_1obs.append(temp_obs)
-	'''
-
 	bnds = ((0,1),)
 	for i in range(1,16):
 		if i < 4:
@@ -291,59 +271,93 @@ def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=
 			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
 			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
 
-	partial_W = Qobj(np.array(w_state.ptrace([q1, q2])))
-
-	fids = []
-	k_indexes = []
-
-	for i in range(start, len(simulated_statistic[0][0]) + 1, step):
-		#print("-------------------ROUND {} of {} -----------------".format(int((i-start)/step), int(int(copies / num_of_setups(n))/step)))
-		last_index = i
-		#print("Last index: ------------ {}".format(last_index))
-		#print(int(copies / num_of_setups(n)))
-		init_quess = density_to_vector(rand_dm(4))
-		reconstrution = scipy.optimize.minimize(total_maximum_likelihood, init_quess, args=(p_2obs, part_stat, 
-											last_index, simulated_statistic, q1, q2, M, M2),
-											bounds=bnds, constraints=cons, 
-											method='SLSQP', options={'maxiter': 5000, 'disp': False})
-		#if reconstrution['message'] != "Optimization terminated successfully.":
-		#	print(reconstrution['message'])
-			#continue
-		sol_den = Qobj(qubit2density(reconstrution['x']))
-		fids.append(fidelity(partial_W, sol_den))
-		k_indexes.append(last_index)
-		#print("------------------ FIDELITY ----------------------")
-		#print(fidelity(partial_W, sol_den))
-		#print(total_maximum_likelihood(density_to_vector(sol_den)))
-		#print(total_maximum_likelihood(density_to_vector(partial_W)))
-
-	k_indexes = np.array(k_indexes)
-	fids = np.array(fids)
-
-	#plt.scatter(k_indexes, fids)
-	'''
-	success = False
 	
-	while not success:
+
+	if calculate_average:
+		avg_fids = []
+		for q_1 in range(n):
+			for q_2 in range(q_1 + 1, n):
+				partial_W = Qobj(np.array(w_state.ptrace([q_1, q_2])))
+				p_2obs = pauli_2qubit_setups(measurement_setups(colorings(n), n), q_1, q_2, M2)
+
+				part_stat = find_statistic(simulated_statistic, q_1, q_2, n)
+
+				part_sim_stat = simulated_statistic[part_stat[1]][part_stat[2]]
+
+				last_index = len(simulated_statistic[0][0])
+
+				fids = []
+				k_indexes = []
+
+				for i in range(start, len(simulated_statistic[0][0]) + 1, step):
+					last_index = i
+					init_quess = density_to_vector(rand_dm(4))
+					reconstrution = scipy.optimize.minimize(total_maximum_likelihood, init_quess, args=(p_2obs, part_stat, 
+														last_index, simulated_statistic, q_1, q_2, M, M2),
+														bounds=bnds, constraints=cons, 
+														method='SLSQP', options={'maxiter': 5000, 'disp': False})
+					sol_den = Qobj(qubit2density(reconstrution['x']))
+					fids.append(fidelity(partial_W, sol_den))
+					k_indexes.append(last_index)
+
+				k_indexes = np.array(k_indexes)
+				fids = np.array(fids)
+				avg_fids.append(fids)
+
+		average_fid = np.zeros(len(avg_fids[0]))
+		for i in range(len(avg_fids)):
+			for j in range(len(avg_fids[i])):
+				average_fid[j] += avg_fids[i][j] / len(avg_fids)
+
+		fids = np.array(average_fid)
+
 		try:
-			popt, pcov = scipy.optimize.curve_fit(func, k_indexes, fids, bounds=((0, -np.inf, -np.inf), (1, np.inf, np.inf)))
-			success = True
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'rb') as f:
+				results = pickle.load(f)
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)
 		except:
-			k_indexes = k_indexes[1:]
-			fids = fids[1:]
-	'''
-	#plt.plot(k_indexes, func(k_indexes, *popt))
+			results = []
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)
 
-	#plt.show()
+	else:
+		partial_W = Qobj(np.array(w_state.ptrace([q1, q2])))
+		p_2obs = pauli_2qubit_setups(measurement_setups(colorings(n), n), q1, q2, M2)
 
-	try:
-		with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'rb') as f:
-			results = pickle.load(f)
-		results.append([k_indexes, fids])
-		with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
-			pickle.dump(results, f)
-	except:
-		results = []
-		results.append([k_indexes, fids])
-		with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
-			pickle.dump(results, f)
+		part_stat = find_statistic(simulated_statistic, q1, q2, n)
+
+		part_sim_stat = simulated_statistic[part_stat[1]][part_stat[2]]
+
+		last_index = len(simulated_statistic[0][0])
+
+		fids = []
+		k_indexes = []
+
+		for i in range(start, len(simulated_statistic[0][0]) + 1, step):
+			last_index = i
+			init_quess = density_to_vector(rand_dm(4))
+			reconstrution = scipy.optimize.minimize(total_maximum_likelihood, init_quess, args=(p_2obs, part_stat, 
+												last_index, simulated_statistic, q1, q2, M, M2),
+												bounds=bnds, constraints=cons, 
+												method='SLSQP', options={'maxiter': 5000, 'disp': False})
+			sol_den = Qobj(qubit2density(reconstrution['x']))
+			fids.append(fidelity(partial_W, sol_den))
+			k_indexes.append(last_index)
+
+		k_indexes = np.array(k_indexes)
+		fids = np.array(fids)
+
+		try:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'rb') as f:
+				results = pickle.load(f)
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)
+		except:
+			results = []
+			results.append([k_indexes, fids])
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_pauli.pkl'.format(n, copies, num_of_runs, q1, q2, state_name), 'wb') as f:
+				pickle.dump(results, f)

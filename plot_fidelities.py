@@ -3,7 +3,6 @@ import numpy as np
 import sys
 import scipy
 from scipy import stats
-from scipy import integrate
 import itertools
 import random
 import os
@@ -29,15 +28,21 @@ n = 4
 #Number of copies
 k = 1500
 #Number of runs
-num_of_runs = 20
+num_of_runs = 25
 
-q1 = 1
-q2 = 2
+q1 = 0
+q2 = 0
 
 state_name = "GHZ" #GHZ of W
 
 #new plots
-new_plots = False
+new_plots = True
+#Average fidelity
+calculate_average = True
+if calculate_average:
+	q1 = 0
+	q2 = 0
+
 project_path = os.path.abspath(os.getcwd())
 simulation_files = [f for f in listdir(project_path + r'\Results') if isfile(join(project_path + r'\Results', f))]
 
@@ -130,7 +135,7 @@ if __name__ == "__main__":
 			with open(r'Results\{}'.format(sic_path), 'rb') as f:
 				results = pickle.load(f)
 		except:
-			p = Pool()
+			p = Pool(5)
 			for i, simulation in enumerate(p.imap_unordered(star_sic, args, 1)):
 				print("SIC SIMULATION ROUND {} OF {}".format(i, num_of_runs))
 			p.terminate()
@@ -142,7 +147,7 @@ if __name__ == "__main__":
 			os.remove(r'Results\{}'.format(sic_path))
 		except:
 			pass
-		p = Pool()
+		p = Pool(5)
 		for i, simulation in enumerate(p.imap_unordered(star_sic, args, 1)):
 			print("SIC SIMULATION ROUND {} OF {}".format(i, num_of_runs))
 		p.terminate()
@@ -229,7 +234,7 @@ if __name__ == "__main__":
 
 	#Function for fitting
 	def func(x, a, b, c):
-		return x / (a + b * x**c)**(1 / c)
+		return (x-a) / (b + (x-a)**c)**(1 / c)
 
 	#print(func([0,1,2,3], 1, 1, 2))
 	
@@ -273,7 +278,10 @@ if __name__ == "__main__":
 	
 	plt.xlabel("Number of measurements")
 	plt.ylabel("Fidelity")
-	plt.title("Average of {} runs for {} qubits, fidelity for qubits {} and {} for the {} state".format(num_of_runs, n, q1, q2, state_name))
+	if q1 != q2:
+		plt.title("Average of {} runs for {} qubits, fidelity for qubits {} and {} for the {} state".format(num_of_runs, n, q1, q2, state_name))
+	else:
+		plt.title("Average of {} runs for {} qubits, fidelity as average over all pairs of qubits for the {} state".format(num_of_runs, n, state_name))
 	plt.legend(loc='lower right')
 
 	plt.show()
