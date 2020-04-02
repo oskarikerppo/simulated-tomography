@@ -77,7 +77,7 @@ def maximum_likelihood(p, m_obs2, frequencies):
 def func(x, a, b, c):
 	return a - b / np.log(c * x)
  
-def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False):
+def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed=False):
 	if seed:
 		random.seed(seed)
 
@@ -85,27 +85,23 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 	if q1 == 0 and q2 == 0:
 		calculate_average = True
 
-	#SIC-POVM for qubit
-	E1 = rho([1,1,1])/2
-	E2 = rho([1,-1,-1])/2
-	E3 = rho([-1,1,-1])/2
-	E4 = rho([-1,-1,1])/2
-
-	E = [E1, E2, E3, E4]
+	povm_string = ""
+	for i in range(len(POVM)):
+		povm_string += str(i)
 
 	#N-qubit POVM from the SIC-POVMs
-	M = ["".join(item) for item in itertools.product("0123", repeat=n)]
+	M = ["".join(item) for item in itertools.product(povm_string, repeat=n)]
 
 	m_obs = []
 	for i in range(len(M)):
 		effects = []
 		for j in range(n):
-			effects.append(E[int(M[i][j])])
+			effects.append(POVM[int(M[i][j])])
 		m_obs.append(tensor(effects))
 
 	expectations = []
 	for i in range(len(m_obs)):
-		expectations.append(np.real((m_obs[i] * w_state).tr()))
+		expectations.append(np.real((m_obs[i] * input_state).tr()))
 
 	#Simulate outcome statistics
 	simulated_statistic = []
@@ -130,13 +126,13 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 	#2-qubit optimization, maximum likelihood
 
 	#2-qubit observable
-	M2 = ["".join(item) for item in itertools.product("0123", repeat=2)]
+	M2 = ["".join(item) for item in itertools.product(povm_string, repeat=2)]
 
 	m_obs2 = []
 	for i in range(len(M2)):
 		effects = []
 		for j in range(2):
-			effects.append(E[int(M2[i][j])])
+			effects.append(POVM[int(M2[i][j])])
 		m_obs2.append(tensor(effects))
 
 
@@ -163,7 +159,7 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 		for q_1 in range(n):
 			for q_2 in range(q_1 + 1, n):
 
-				partial_W = Qobj(np.array(w_state.ptrace([q_1, q_2])))
+				partial_W = Qobj(np.array(input_state.ptrace([q_1, q_2])))
 
 				frequencies = convert_statistics(simulated_statistic, q_1, q_2, M, M2)
 				true_frequencies = frequencies
@@ -195,18 +191,18 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 		fids = np.array(average_fid)
 
 		try:
-			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'rb') as f:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_{}.pkl'.format(n, k, num_of_runs, q1, q2, state_name, meas_name), 'rb') as f:
 				results = pickle.load(f)
 			results.append([k_indexes, fids])
-			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_{}.pkl'.format(n, k, num_of_runs, q1, q2, state_name, meas_name), 'wb') as f:
 				pickle.dump(results, f)
 		except:
 			results = []
 			results.append([k_indexes, fids])
-			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_{}.pkl'.format(n, k, num_of_runs, q1, q2, state_name, meas_name), 'wb') as f:
 				pickle.dump(results, f)
 	else:
-		partial_W = Qobj(np.array(w_state.ptrace([q1, q2])))
+		partial_W = Qobj(np.array(input_state.ptrace([q1, q2])))
 		frequencies = convert_statistics(simulated_statistic, q1, q2, M, M2)
 		true_frequencies = frequencies
 
@@ -228,13 +224,13 @@ def main(n, k, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False
 		fids = np.array(fids)
 
 		try:
-			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'rb') as f:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_{}.pkl'.format(n, k, num_of_runs, q1, q2, state_name, meas_name), 'rb') as f:
 				results = pickle.load(f)
 			results.append([k_indexes, fids])
-			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_{}.pkl'.format(n, k, num_of_runs, q1, q2, state_name, meas_name), 'wb') as f:
 				pickle.dump(results, f)
 		except:
 			results = []
 			results.append([k_indexes, fids])
-			with open(r'Results\results_{}_{}_{}_{}_{}_{}_sic.pkl'.format(n, k, num_of_runs, q1, q2, state_name), 'wb') as f:
+			with open(r'Results\results_{}_{}_{}_{}_{}_{}_{}.pkl'.format(n, k, num_of_runs, q1, q2, state_name, meas_name), 'wb') as f:
 				pickle.dump(results, f)

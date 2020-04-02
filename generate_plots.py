@@ -25,7 +25,7 @@ for col, file in enumerate(simulation_files):
 	with open(r'Results\{}'.format(file), 'rb') as f:
 		results = pickle.load(f)
 
-	if "pauli" in file:
+	if "pauli." in file:
 		n = int(file.split("_")[1])
 		num_of_pauli_setups = int(simulate_pauli.num_of_setups(n))
 
@@ -49,7 +49,7 @@ for col, file in enumerate(simulation_files):
 		sigma.append(np.std(fids_j))
 
 	k_indexes = results[0][0]
-	if "pauli" in file:
+	if "pauli." in file:
 		k_indexes = results[0][0] * num_of_pauli_setups
 
 	plt.figure(0)
