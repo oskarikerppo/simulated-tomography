@@ -151,8 +151,8 @@ if calculate_average:
 
 num_of_pauli_setups = int(simulate_pauli.num_of_setups(n))
 
-meas_name = "pauli_povm" #sic_povm, noisy_sic, pauli_povm or pauli
-POVM = pauli_povm
+meas_name = "noisy_sic" #sic_povm, noisy_sic, pauli_povm or pauli
+POVM = noisy_sic
 
 if meas_name == "pauli":
 	start = 1
