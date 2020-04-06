@@ -53,7 +53,7 @@ for col, file in enumerate(simulation_files):
 		k_indexes = results[0][0] * num_of_pauli_setups
 
 	plt.figure(0)
-	plt.scatter(k_indexes, average_fid, label=file, color=colors[col])
+	plt.scatter(k_indexes, average_fid, label=file, color=colors[col % len(colors)])
 
 	real_k_indexes = k_indexes
 	real_fids = average_fid
@@ -71,12 +71,12 @@ for col, file in enumerate(simulation_files):
 	print(file)
 	print(popt)
 	print(pcov)
-	plt.plot(real_k_indexes, func(real_k_indexes, *popt), label="Fit to {}".format(file), color=colors[col])
-	plt.errorbar(real_k_indexes, real_fids, yerr=std, color=colors[col])
+	plt.plot(real_k_indexes, func(real_k_indexes, *popt), label="Fit to {}".format(file), color=colors[col % len(colors)])
+	plt.errorbar(real_k_indexes, real_fids, yerr=std, color=colors[col % len(colors)])
 	
 	plt.figure(1)
 	plt.plot(real_k_indexes, func(real_k_indexes, *popt) - real_fids, 
-				label="Difference to fit: {}".format(file), color=colors[col])
+				label="Difference to fit: {}".format(file), color=colors[col % len(colors)])
 
 
 plt.plot(real_k_indexes, [0 for x in range(len(real_k_indexes))], color='k')

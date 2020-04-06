@@ -15,11 +15,14 @@ import pickle
 from multiprocessing import Pool
 import simulate_povm
 import simulate_pauli
+import time
+import warnings
+
 #use tex
 matplotlib.rc('text', usetex = True)
 
 np.seterr(all='ignore')
-
+warnings.filterwarnings('ignore')
 
 #Pauli matrices
 s = [sigmax(), sigmay(), sigmaz()]
@@ -84,16 +87,24 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 
 	if meas_name == "pauli":
 		args = [(n, k, q1, q2, input_state, start, step, state_name, num_of_runs, seed) for x in range(num_of_runs)]
+		round_time = time.time()
+		print("Starting pauli...")
 		p = Pool()
 		for i, simulation in enumerate(p.imap_unordered(star_pauli, args, 1)):
-			print("pauli SIMULATION ROUND {} OF {}".format(i, num_of_runs))
+			round_finish = time.time()
+			print("pauli SIMULATION ROUND {} OF {} in {} minutes".format(i, num_of_runs, (round_finish - round_time) / 60))
 		p.terminate()
+		print("Finished {} in {} minutes!".format(meas_name, (round_finish - round_time) / 60))
 	else:
 		args = [(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed) for x in range(num_of_runs)]
+		round_time = time.time()
+		print("Starting {}...".format(meas_name))
 		p = Pool()
 		for i, simulation in enumerate(p.imap_unordered(star_povm, args, 1)):
-			print("{} SIMULATION ROUND {} OF {}".format(meas_name, i, num_of_runs))
+			round_finish = time.time()
+			print("{} SIMULATION ROUND {} OF {} in {} minutes".format(meas_name, i, num_of_runs, (round_finish - round_time) / 60))
 		p.terminate()
+		print("Finished {} in {} minutes!".format(meas_name, (round_finish - round_time) / 60))
 
 
 #SIC-POVM for qubit
@@ -165,9 +176,36 @@ else:
 
 
 if __name__ == "__main__":
+	start_time = time.time()
+
 	#main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed=False)
-	main(3, k, q1, q2, GHZ(3), 		POVM, int(simulate_pauli.num_of_setups(3)), int(simulate_pauli.num_of_setups(3)), "GHZ", 	meas_name, num_of_runs, seed=False)
-	main(3, k, q1, q2, w_state(3), 	POVM, int(simulate_pauli.num_of_setups(3)), int(simulate_pauli.num_of_setups(3)), "W", 		meas_name, num_of_runs, seed=False)
-	main(4, k, q1, q2, GHZ(4), 		POVM, int(simulate_pauli.num_of_setups(4)), int(simulate_pauli.num_of_setups(4)), "GHZ", 	meas_name, num_of_runs, seed=False)
-	main(4, k, q1, q2, w_state(4), 	POVM, int(simulate_pauli.num_of_setups(4)), int(simulate_pauli.num_of_setups(4)), "W", 		meas_name, num_of_runs, seed=False)
+	main(5, k, q1, q2, GHZ(5), 		noisy_sic, 	int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "GHZ","noisy_sic", num_of_runs, seed=False)
+	main(5, k, q1, q2, w_state(5), 	noisy_sic, 	int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "W", 	"noisy_sic", num_of_runs, seed=False)
+	
+	noisy_time = time.time() - start_time
+	print("Finished noisy sic in {} hours, {} minutes and {} seconds!".format(int(np.floor(noisy_time / 3600)), int(np.floor( (noisy_time / 60) % 60)),  int(np.floor(noisy_time % 60))))
+
+	main(5, k, q1, q2, GHZ(5), 		pauli_povm, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "GHZ","pauli_povm",num_of_runs, seed=False)
+	main(5, k, q1, q2, w_state(5), 	pauli_povm, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "W", 	"pauli_povm",num_of_runs, seed=False)
+
+	pauli_povm_time = time.time() - noisy_time
+	print("Finished pauli povm in {} hours, {} minutes and {} seconds!".format(int(np.floor(pauli_povm_time / 3600)), int(np.floor( (pauli_povm_time / 60) % 60)),  int(np.floor(pauli_povm_time % 60))))
+
+	main(5, k, q1, q2, GHZ(5), 		E, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), 		"GHZ",	"sic_povm"	,num_of_runs, seed=False)
+	main(5, k, q1, q2, w_state(5), 	E, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), 		"W", 	"sic_povm"	,num_of_runs, seed=False)
+
+	sic_povm_time = time.time() - pauli_povm_time
+	print("Finished sic povm in {} hours, {} minutes and {} seconds!".format(int(np.floor(sic_povm_time / 3600)), int(np.floor( (sic_povm_time / 60) % 60)),  int(np.floor(sic_povm_time % 60))))
+
+	main(5, k, q1, q2, GHZ(5), 		E, 1, 									5,										 		"GHZ",	"pauli"		,num_of_runs, seed=False)
+	main(5, k, q1, q2, w_state(5), 	E, 1, 									5, 												"W", 	"pauli"		,num_of_runs, seed=False)
+
+	pauli_time = time.time() - sic_povm_time
+	print("Finished pauli setup in {} hours, {} minutes and {} seconds!".format(int(np.floor(pauli_time / 3600)), int(np.floor( (pauli_time / 60) % 60)),  int(np.floor(pauli_time % 60))))
+
+	end_time = time.time()
+	total_time = end_time - start_time
+	print(total_time)
+	print("Finished in {} hours, {} minutes and {} seconds!".format(int(np.floor(total_time / 3600)), int(np.floor( (total_time / 60) % 60)),  int(np.floor(total_time % 60))))
+
 	sys.exit()
