@@ -138,9 +138,9 @@ noisy_sic = [noise_param*qeye(2)/4 + (1-noise_param)*E[i] for i in range(len(E))
 n = 3
 
 #Number of copies
-k = 1500
+k = 40000
 #Number of runs
-num_of_runs = 25
+num_of_runs = 1
 
 q1 = 0
 q2 = 0
@@ -177,30 +177,30 @@ else:
 
 if __name__ == "__main__":
 	start_time = time.time()
-
+	'''
 	#main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed=False)
-	main(5, k, q1, q2, GHZ(5), 		noisy_sic, 	int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "GHZ","noisy_sic", num_of_runs, seed=False)
-	main(5, k, q1, q2, w_state(5), 	noisy_sic, 	int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "W", 	"noisy_sic", num_of_runs, seed=False)
-	
-	noisy_time = time.time() - start_time
+	start_time_noisy_sic = time.time()
+	main(6, k, q1, q2, GHZ(6), 		noisy_sic, 	int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "GHZ","noisy_sic", num_of_runs, seed=False)
+	main(6, k, q1, q2, w_state(6), 	noisy_sic, 	int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "W", 	"noisy_sic", num_of_runs, seed=False)
+	noisy_time = time.time() - start_time_noisy_sic
 	print("Finished noisy sic in {} hours, {} minutes and {} seconds!".format(int(np.floor(noisy_time / 3600)), int(np.floor( (noisy_time / 60) % 60)),  int(np.floor(noisy_time % 60))))
 
-	main(5, k, q1, q2, GHZ(5), 		pauli_povm, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "GHZ","pauli_povm",num_of_runs, seed=False)
-	main(5, k, q1, q2, w_state(5), 	pauli_povm, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), "W", 	"pauli_povm",num_of_runs, seed=False)
-
-	pauli_povm_time = time.time() - noisy_time
+	start_time_pauli_povm = time.time()
+	main(6, k, q1, q2, GHZ(6), 		pauli_povm, int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "GHZ","pauli_povm",num_of_runs, seed=False)
+	main(6, k, q1, q2, w_state(6), 	pauli_povm, int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "W", 	"pauli_povm",num_of_runs, seed=False)
+	pauli_povm_time = time.time() - start_time_pauli_povm
 	print("Finished pauli povm in {} hours, {} minutes and {} seconds!".format(int(np.floor(pauli_povm_time / 3600)), int(np.floor( (pauli_povm_time / 60) % 60)),  int(np.floor(pauli_povm_time % 60))))
 
-	main(5, k, q1, q2, GHZ(5), 		E, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), 		"GHZ",	"sic_povm"	,num_of_runs, seed=False)
-	main(5, k, q1, q2, w_state(5), 	E, int(simulate_pauli.num_of_setups(5)), 5*int(simulate_pauli.num_of_setups(5)), 		"W", 	"sic_povm"	,num_of_runs, seed=False)
-
-	sic_povm_time = time.time() - pauli_povm_time
+	start_time_sic_povm = time.time()
+	main(6, k, q1, q2, GHZ(6), 		E, int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), 		"GHZ",	"sic_povm"	,num_of_runs, seed=False)
+	main(6, k, q1, q2, w_state(6), 	E, int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), 		"W", 	"sic_povm"	,num_of_runs, seed=False)
+	sic_povm_time = time.time() - start_time_sic_povm
 	print("Finished sic povm in {} hours, {} minutes and {} seconds!".format(int(np.floor(sic_povm_time / 3600)), int(np.floor( (sic_povm_time / 60) % 60)),  int(np.floor(sic_povm_time % 60))))
-
-	main(5, k, q1, q2, GHZ(5), 		E, 1, 									5,										 		"GHZ",	"pauli"		,num_of_runs, seed=False)
-	main(5, k, q1, q2, w_state(5), 	E, 1, 									5, 												"W", 	"pauli"		,num_of_runs, seed=False)
-
-	pauli_time = time.time() - sic_povm_time
+	'''
+	start_time_pauli_setup = time.time()
+	main(3, k, q1, q2, GHZ(3), 		E, 1, 									150,										 		"GHZ",	"pauli"		,num_of_runs, seed=False)
+	#main(6, k, q1, q2, w_state(6), 	E, 1, 									6, 												"W", 	"pauli"		,num_of_runs, seed=False)
+	pauli_time = time.time() - start_time_pauli_setup
 	print("Finished pauli setup in {} hours, {} minutes and {} seconds!".format(int(np.floor(pauli_time / 3600)), int(np.floor( (pauli_time / 60) % 60)),  int(np.floor(pauli_time % 60))))
 
 	end_time = time.time()

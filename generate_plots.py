@@ -71,7 +71,7 @@ for col, file in enumerate(simulation_files):
 	print(file)
 	print(popt)
 	print(pcov)
-	plt.plot(real_k_indexes, func(real_k_indexes, *popt), label="Fit to {}".format(file), color=colors[col % len(colors)])
+	plt.plot(range(15, real_k_indexes[-1]), func(range(15, real_k_indexes[-1]), *popt), label="Fit to {}".format(file), color=colors[col % len(colors)])
 	plt.errorbar(real_k_indexes, real_fids, yerr=std, color=colors[col % len(colors)])
 	
 	plt.figure(1)
