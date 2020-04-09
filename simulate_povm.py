@@ -64,11 +64,11 @@ def convert_statistics(statistics, q1, q2, M, M2):
 	return conv_stat
 
 
-def maximum_likelihood(p, m_obs2, frequencies):
+def maximum_likelihood(p, m_2_obs, frequencies):
 	density_matrix = qubit2density(p)
 	max_sum = 0
-	for i in range(len(m_obs2)):
-		s = np.real(np.trace(m_obs2[i] * density_matrix))
+	for i in range(len(m_2_obs)):
+		s = np.real(np.trace(m_2_obs[i] * density_matrix))
 		if s != 0:
 			max_sum += frequencies.count(i)*np.log(s)
 	return np.real(-max_sum/len(frequencies))
@@ -92,17 +92,19 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 	#N-qubit POVM from the SIC-POVMs
 	M = ["".join(item) for item in itertools.product(povm_string, repeat=n)]
 
-	m_obs = []
+	expectations = []
 	for i in range(len(M)):
 		effects = []
 		for j in range(n):
 			effects.append(POVM[int(M[i][j])])
-		m_obs.append(tensor(effects))
+		expectations.append(np.real((tensor(effects) * input_state).tr()))
+	del effects
 
-	expectations = []
+	'''
 	for i in range(len(m_obs)):
 		expectations.append(np.real((m_obs[i] * input_state).tr()))
-
+	'''
+	
 	#Simulate outcome statistics
 	simulated_statistic = []
 	for i in range(k):
@@ -128,12 +130,12 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 	#2-qubit observable
 	M2 = ["".join(item) for item in itertools.product(povm_string, repeat=2)]
 
-	m_obs2 = []
+	m_2_obs = []
 	for i in range(len(M2)):
 		effects = []
 		for j in range(2):
 			effects.append(POVM[int(M2[i][j])])
-		m_obs2.append(tensor(effects))
+		m_2_obs.append(tensor(effects))
 
 
 	#Random initial guess
@@ -172,7 +174,7 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 					last_index = i
 					frequencies = true_frequencies[:last_index]
 					init_guess = density_to_vector(rand_dm(4))
-					reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_obs2, frequencies),
+					reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_2_obs, frequencies),
 														bounds=bnds, constraints=cons, 
 														method='SLSQP', options={'maxiter': 5000, 'disp': False})
 					sol_den = Qobj(qubit2density(reconstrution['x']))
@@ -213,7 +215,7 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 			last_index = i
 			frequencies = true_frequencies[:last_index]
 			init_guess = density_to_vector(rand_dm(4))
-			reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_obs2, frequencies),
+			reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_2_obs, frequencies),
 													bounds=bnds, constraints=cons, 
 													method='SLSQP', options={'maxiter': 5000, 'disp': False})
 			sol_den = Qobj(qubit2density(reconstrution['x']))

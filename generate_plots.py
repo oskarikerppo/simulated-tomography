@@ -38,15 +38,21 @@ for col, file in enumerate(simulation_files):
 			average_fid[j] += fids[i][j] / num_of_runs
 
 	#Standard deviation
-	std = []
-	for j in range(len(fids[0])):
-		fids_j = [fids[i][j] for i in range(len(fids))]
-		std.append(stats.sem(fids_j))
+	if len(fids) == 1:
+		std = fids
+	else:
+		std = []
+		for j in range(len(fids[0])):
+			fids_j = [fids[i][j] for i in range(len(fids))]
+			std.append(stats.sem(fids_j))
 
-	sigma = []
-	for j in range(len(fids[0])):
-		fids_j = [fids[i][j] for i in range(len(fids))]
-		sigma.append(np.std(fids_j))
+	if len(fids) == 1:
+		sigma = fids
+	else:
+		sigma = []
+		for j in range(len(fids[0])):
+			fids_j = [fids[i][j] for i in range(len(fids))]
+			sigma.append(np.std(fids_j))
 
 	k_indexes = results[0][0]
 	if "pauli." in file:
@@ -61,21 +67,29 @@ for col, file in enumerate(simulation_files):
 	success = False
 	while not success:
 		try:
-			popt, pcov = scipy.optimize.curve_fit(func, k_indexes, average_fid, sigma = std)#, 
-														#bounds=((-np.inf, -np.inf, -np.inf), 
-														#(np.inf, np.inf, np.inf)))
+			if len(fids) > 1:
+				popt, pcov = scipy.optimize.curve_fit(func, k_indexes, average_fid, sigma = std)
+			else:
+				popt, pcov = scipy.optimize.curve_fit(func, k_indexes, average_fid)
 			success = True
+			found_fit = True
 		except:
 			k_indexes = k_indexes[1:]
 			average_fid = average_fid[1:]
+			if len(k_indexes) == 0:
+				success = True
+				found_fit = False
 	print(file)
 	print(popt)
 	print(pcov)
-	plt.plot(range(15, real_k_indexes[-1]), func(range(15, real_k_indexes[-1]), *popt), label="Fit to {}".format(file), color=colors[col % len(colors)])
-	plt.errorbar(real_k_indexes, real_fids, yerr=std, color=colors[col % len(colors)])
+	if found_fit:
+		plt.plot(range(15, real_k_indexes[-1]), func(range(15, real_k_indexes[-1]), *popt), label="Fit to {}".format(file), color=colors[col % len(colors)])
+	if len(fids) > 1:
+		plt.errorbar(real_k_indexes, real_fids, yerr=std, color=colors[col % len(colors)])
 	
 	plt.figure(1)
-	plt.plot(real_k_indexes, func(real_k_indexes, *popt) - real_fids, 
+	if found_fit:
+		plt.plot(real_k_indexes, func(real_k_indexes, *popt) - real_fids, 
 				label="Difference to fit: {}".format(file), color=colors[col % len(colors)])
 
 

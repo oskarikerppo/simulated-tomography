@@ -59,18 +59,32 @@ def pauli_setups(mes_setups, M, n):
 		mes.append(color_mes)
 	return mes
 
-def pauli_setups2(mes_setups, M, n):
-	mes = []
+def pauli_setups2(mes_setups, M, n, input_state):
+	probabilities = []
 	for coloring in mes_setups:
-		color_mes = []
+		col_probs = []
 		for col_mes in coloring:
 			projection_bases = [pauli_projection_dict[k] for k in col_mes]
-			effects = []
+			probs = []
 			for i in range(len(M)):
-				effects.append(tensor([projection_bases[k][int(M[i][k])] for k in range(n)]))
-			color_mes.append(effects)
-		mes.append(color_mes)
-	return mes
+				probs.append(np.real((input_state * tensor([projection_bases[k][int(M[i][k])] for k in range(n)])).tr()))
+			col_probs.append(probs)
+		probabilities.append(col_probs)
+	return probabilities
+
+	'''
+	probabilities = []
+	for i in range(len(measurement_setups(colorings(n), n))):
+		col_probs = []
+		for j in range(len(measurement_setups(colorings(n), n)[i])):
+			probs= []
+			for k in range(len(p_obs2[i][j])):
+				p = (input_state * p_obs2[i][j][k]).tr()
+				probs.append(np.real(p))
+			col_probs.append(probs)
+		probabilities.append(col_probs)
+	'''
+
 
 def pauli_2qubit_setups(mes_setups, q1, q2, M2):
 	mes = []
@@ -199,7 +213,7 @@ def func(x, a, b, c):
  
 
 
-def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=False):
+def main(n, copies, q1, q2, input_state, start, step, state_name, num_of_runs, seed=False):
 
 	if seed:
 		random.seed(seed)
@@ -225,19 +239,21 @@ def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=
 	M2 = ["".join(item) for item in itertools.product("01", repeat=2)]
 	M1 = ["".join(item) for item in itertools.product("01", repeat=1)]
 
-	p_obs1 = pauli_setups(measurement_setups(colorings(n), n), M, n)
-	p_obs2 = pauli_setups2(measurement_setups(colorings(n), n) , M, n)
+	#p_obs1 = pauli_setups(measurement_setups(colorings(n), n), M, n)
+	probabilities = pauli_setups2(measurement_setups(colorings(n), n) , M, n, input_state)
 
+	'''
 	probabilities = []
 	for i in range(len(measurement_setups(colorings(n), n))):
 		col_probs = []
 		for j in range(len(measurement_setups(colorings(n), n)[i])):
 			probs= []
 			for k in range(len(p_obs2[i][j])):
-				p = (w_state * p_obs2[i][j][k]).tr()
+				p = (input_state * p_obs2[i][j][k]).tr()
 				probs.append(np.real(p))
 			col_probs.append(probs)
 		probabilities.append(col_probs)
+	'''
 
 	#Simulate outcome statistics
 	simulated_statistic = []
@@ -277,7 +293,7 @@ def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=
 		avg_fids = []
 		for q_1 in range(n):
 			for q_2 in range(q_1 + 1, n):
-				partial_W = Qobj(np.array(w_state.ptrace([q_1, q_2])))
+				partial_W = Qobj(np.array(input_state.ptrace([q_1, q_2])))
 				p_2obs = pauli_2qubit_setups(measurement_setups(colorings(n), n), q_1, q_2, M2)
 
 				part_stat = find_statistic(simulated_statistic, q_1, q_2, n)
@@ -324,7 +340,7 @@ def main(n, copies, q1, q2, w_state, start, step, state_name, num_of_runs, seed=
 				pickle.dump(results, f)
 
 	else:
-		partial_W = Qobj(np.array(w_state.ptrace([q1, q2])))
+		partial_W = Qobj(np.array(input_state.ptrace([q1, q2])))
 		p_2obs = pauli_2qubit_setups(measurement_setups(colorings(n), n), q1, q2, M2)
 
 		part_stat = find_statistic(simulated_statistic, q1, q2, n)
