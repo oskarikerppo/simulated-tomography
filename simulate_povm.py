@@ -8,7 +8,8 @@ import pickle
 
 
 #Pauli matrices
-s = [sigmax(), sigmay(), sigmaz()]
+#s = [sigmax(), sigmay(), sigmaz()]
+s = {0: sigmax(), 1: sigmay(), 2: sigmaz()}
 
 #General qubit state, input as list of Bloch vector components, i.e. r = [rx, ry, rz]
 def rho(r):
@@ -27,14 +28,15 @@ def qubit2density(p):#p is list of 16 numbers
 	for i in range(3):
 		for j in range(i+1, 4):
 			elem = p.pop(0)
-			d[i][j] = elem
+			#d[i][j] = elem
 			d[j][i] = elem
 	#set complex elements
 	for i in range(3):
 		for j in range(i+1, 4):
 			elem = p.pop(0)
-			d[i][j] += elem*(-1j)
+			#d[i][j] += elem*(-1j)
 			d[j][i] += elem*(1j)
+	d = d.T.conj() @ d
 	return d
 
 def density_to_vector(density):#p is list of 16 numbers
@@ -90,7 +92,10 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 		povm_string += str(i)
 
 	#N-qubit POVM from the SIC-POVMs
+	#MM = {}
 	M = ["".join(item) for item in itertools.product(povm_string, repeat=n)]
+	#for i, item in enumerate(itertools.product(povm_string, repeat=n)):
+	#	MM[i] = item
 
 	expectations = []
 	for i in range(len(M)):
@@ -148,11 +153,11 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 		else:
 			bnds += ((-1,1),)
 
-	cons = ({'type': 'eq', 'fun': lambda x: 1 - np.trace(qubit2density(x))},
-			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0])},
-			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1])},
-			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
-			{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
+	cons = ({'type': 'eq', 'fun': lambda x: 1 - sum(x[:4])})#,
+			#{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][0])},
+			#{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][1])},
+			#{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][2])},
+			#{'type': 'ineq', 'fun': lambda x: np.real(np.linalg.eig(qubit2density(x))[0][3])})
 
 
 
@@ -175,7 +180,7 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 					frequencies = true_frequencies[:last_index]
 					init_guess = density_to_vector(rand_dm(4))
 					reconstrution = scipy.optimize.minimize(maximum_likelihood, init_guess, args=(m_2_obs, frequencies),
-														bounds=bnds, constraints=cons, 
+														bounds=bnds, constraints=cons, tol=1e-10,
 														method='SLSQP', options={'maxiter': 5000, 'disp': False})
 					sol_den = Qobj(qubit2density(reconstrution['x']))
 					fids.append(fidelity(partial_W, sol_den))

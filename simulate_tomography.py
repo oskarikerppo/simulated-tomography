@@ -89,7 +89,7 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 		args = [(n, k, q1, q2, input_state, start, step, state_name, num_of_runs, seed) for x in range(num_of_runs)]
 		round_time = time.time()
 		print("Starting pauli setup {} state...".format(state_name))
-		p = Pool()
+		p = Pool(1)
 		for i, simulation in enumerate(p.imap_unordered(star_pauli, args, 1)):
 			round_finish = time.time()
 			print("pauli setup {} state SIMULATION ROUND {} OF {} in {} minutes".format(state_name, i, num_of_runs, (round_finish - round_time) / 60))
@@ -99,7 +99,7 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 		args = [(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed) for x in range(num_of_runs)]
 		round_time = time.time()
 		print("Starting {} {} state...".format(meas_name, state_name))
-		p = Pool()
+		p = Pool(1)
 		for i, simulation in enumerate(p.imap_unordered(star_povm, args, 1)):
 			round_finish = time.time()
 			print("{} {} state SIMULATION ROUND {} OF {} in {} minutes".format(meas_name, state_name, i, num_of_runs, (round_finish - round_time) / 60))
@@ -108,10 +108,20 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 
 
 #SIC-POVM for qubit
-E1 = rho([1,1,1])/2
-E2 = rho([1,-1,-1])/2
-E3 = rho([-1,1,-1])/2
-E4 = rho([-1,-1,1])/2
+#E1 = rho([1,1,1])/2
+#E2 = rho([1,-1,-1])/2
+#E3 = rho([-1,1,-1])/2
+#E4 = rho([-1,-1,1])/2
+
+#[0.5 / 0 0 0]
+#https://en.wikipedia.org/wiki/SIC-POVM
+E1 = basis(2, 0) * basis(2, 0).dag() / 2
+e2 = basis(2, 0) / np.sqrt(3) + np.sqrt(2/3) * basis(2, 1)
+E2 = e2 * e2.dag() / 2
+e3 = basis(2, 0) / np.sqrt(3) + np.sqrt(2/3) * np.exp(1j*2*np.pi/3) * basis(2, 1)
+E3 = e3 * e3.dag() / 2
+e4 = basis(2, 0) / np.sqrt(3) + np.sqrt(2/3) * np.exp(1j*4*np.pi/3) * basis(2, 1)
+E4 = e4 * e4.dag() / 2
 
 E = [E1, E2, E3, E4]
 
@@ -135,12 +145,16 @@ noisy_sic = [noise_param*qeye(2)/4 + (1-noise_param)*E[i] for i in range(len(E))
 #Parameters for programs
 
 #Number of qubits
-n = 3
+n = 8
 
 #Number of copies
-k = 1500
+k = 8192
+
+#qiskit copies
+#k = 8192
+
 #Number of runs
-num_of_runs = 24
+num_of_runs = 10
 
 q1 = 0
 q2 = 0
@@ -177,29 +191,29 @@ else:
 
 if __name__ == "__main__":
 	start_time = time.time()
-	'''
+	
 	#main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed=False)
 	start_time_noisy_sic = time.time()
-	main(6, k, q1, q2, GHZ(6), 		noisy_sic, 	int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "GHZ","noisy_sic", num_of_runs, seed=False)
-	main(6, k, q1, q2, w_state(6), 	noisy_sic, 	int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "W", 	"noisy_sic", num_of_runs, seed=False)
+	main(n, k, q1, q2, GHZ(n), 		noisy_sic, 	int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), "GHZ","noisy_sic", num_of_runs, seed=False)
+	main(n, k, q1, q2, w_state(n), 	noisy_sic, 	int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), "W", 	"noisy_sic", num_of_runs, seed=False)
 	noisy_time = time.time() - start_time_noisy_sic
 	print("Finished noisy sic in {} hours, {} minutes and {} seconds!".format(int(np.floor(noisy_time / 3600)), int(np.floor( (noisy_time / 60) % 60)),  int(np.floor(noisy_time % 60))))
 
 	start_time_pauli_povm = time.time()
-	main(6, k, q1, q2, GHZ(6), 		pauli_povm, int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "GHZ","pauli_povm",num_of_runs, seed=False)
-	main(6, k, q1, q2, w_state(6), 	pauli_povm, int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), "W", 	"pauli_povm",num_of_runs, seed=False)
+	main(n, k, q1, q2, GHZ(n), 		pauli_povm, int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), "GHZ","pauli_povm",num_of_runs, seed=False)
+	main(n, k, q1, q2, w_state(n), 	pauli_povm, int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), "W", 	"pauli_povm",num_of_runs, seed=False)
 	pauli_povm_time = time.time() - start_time_pauli_povm
 	print("Finished pauli povm in {} hours, {} minutes and {} seconds!".format(int(np.floor(pauli_povm_time / 3600)), int(np.floor( (pauli_povm_time / 60) % 60)),  int(np.floor(pauli_povm_time % 60))))
-	'''
+	
 	start_time_sic_povm = time.time()
-	main(7, k, q1, q2, GHZ(7), 		E, int(simulate_pauli.num_of_setups(7)), 7*int(simulate_pauli.num_of_setups(7)), 		"GHZ",	"sic_povm"	, 1, seed=False)
-	#main(6, k, q1, q2, w_state(6), 	E, int(simulate_pauli.num_of_setups(6)), 6*int(simulate_pauli.num_of_setups(6)), 		"W", 	"sic_povm"	,num_of_runs, seed=False)
+	main(n, k, q1, q2, GHZ(n), 		E, int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), 		"GHZ",	"sic_povm"	, num_of_runs, seed=False)
+	main(n, k, q1, q2, w_state(n), 	E, int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), 		"W", 	"sic_povm"	, num_of_runs, seed=False)
 	sic_povm_time = time.time() - start_time_sic_povm
 	print("Finished sic povm in {} hours, {} minutes and {} seconds!".format(int(np.floor(sic_povm_time / 3600)), int(np.floor( (sic_povm_time / 60) % 60)),  int(np.floor(sic_povm_time % 60))))
 	
 	start_time_pauli_setup = time.time()
-	#main(6, k, q1, q2, GHZ(3), 		E, 1, 									150,										 		"GHZ",	"pauli"		,num_of_runs, seed=False)
-	main(6, k, q1, q2, w_state(6), 	E, 1, 									6, 												"W", 	"pauli"		,num_of_runs, seed=False)
+	main(n, k, q1, q2, GHZ(n), 		E, 1, 									n,										 		"GHZ",	"pauli"		,num_of_runs, seed=False)
+	main(n, k, q1, q2, w_state(n), 	E, 1, 									n, 												"W", 	"pauli"		,num_of_runs, seed=False)
 	pauli_time = time.time() - start_time_pauli_setup
 	print("Finished pauli setup in {} hours, {} minutes and {} seconds!".format(int(np.floor(pauli_time / 3600)), int(np.floor( (pauli_time / 60) % 60)),  int(np.floor(pauli_time % 60))))
 

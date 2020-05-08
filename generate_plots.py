@@ -95,6 +95,12 @@ for col, file in enumerate(simulation_files):
 
 plt.plot(real_k_indexes, [0 for x in range(len(real_k_indexes))], color='k')
 plt.figure(0)
+plt.plot(real_k_indexes, [1 for x in range(len(real_k_indexes))], color='k')
+plt.plot(real_k_indexes, [0.99 for x in range(len(real_k_indexes))], color='dimgray')
+plt.plot(real_k_indexes, [0.98 for x in range(len(real_k_indexes))], color='dimgrey')
+plt.plot(real_k_indexes, [0.97 for x in range(len(real_k_indexes))], color='gray')
+plt.plot(real_k_indexes, [0.96 for x in range(len(real_k_indexes))], color='grey')
+plt.plot(real_k_indexes, [0.95 for x in range(len(real_k_indexes))], color='darkgray')
 plt.xlabel("Number of copies of state")
 plt.ylabel("Fidelity")
 plt.legend(loc='lower right')
