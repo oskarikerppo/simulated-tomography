@@ -87,24 +87,30 @@ def main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, nu
 
 	if meas_name == "pauli":
 		args = [(n, k, q1, q2, input_state, start, step, state_name, num_of_runs, seed) for x in range(num_of_runs)]
+		fids = []
 		round_time = time.time()
 		print("Starting pauli setup {} state...".format(state_name))
 		p = Pool(1)
 		for i, simulation in enumerate(p.imap_unordered(star_pauli, args, 1)):
+			fids.append((i, simulation))
 			round_finish = time.time()
 			print("pauli setup {} state SIMULATION ROUND {} OF {} in {} minutes".format(state_name, i, num_of_runs, (round_finish - round_time) / 60))
 		p.terminate()
 		print("Finished {} in {} minutes!".format(meas_name, (round_finish - round_time) / 60))
+		return fids
 	else:
 		args = [(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed) for x in range(num_of_runs)]
+		fids = []
 		round_time = time.time()
 		print("Starting {} {} state...".format(meas_name, state_name))
 		p = Pool(1)
 		for i, simulation in enumerate(p.imap_unordered(star_povm, args, 1)):
+			fids.append((i, simulation))
 			round_finish = time.time()
 			print("{} {} state SIMULATION ROUND {} OF {} in {} minutes".format(meas_name, state_name, i, num_of_runs, (round_finish - round_time) / 60))
 		p.terminate()
 		print("Finished {} in {} minutes!".format(meas_name, (round_finish - round_time) / 60))
+		return fids
 
 
 #SIC-POVM for qubit
@@ -154,12 +160,12 @@ k = 8192
 #k = 8192
 
 #Number of runs
-num_of_runs = 10
+num_of_runs = 5
 
 q1 = 0
 q2 = 0
 
-state_name = "GHZ" #GHZ of W
+state_name = "W" #GHZ of W
 
 input_state = ""
 if state_name == "GHZ":
@@ -191,7 +197,10 @@ else:
 
 if __name__ == "__main__":
 	start_time = time.time()
-	
+
+	fid = main(n, k, q1, q2, GHZ(n), 		noisy_sic, 	int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), "W","sic_povm", num_of_runs, seed=False)
+	print(fid)
+	'''
 	#main(n, k, q1, q2, input_state, POVM, start, step, state_name, meas_name, num_of_runs, seed=False)
 	start_time_noisy_sic = time.time()
 	main(n, k, q1, q2, GHZ(n), 		noisy_sic, 	int(simulate_pauli.num_of_setups(n)), n*int(simulate_pauli.num_of_setups(n)), "GHZ","noisy_sic", num_of_runs, seed=False)
@@ -221,5 +230,5 @@ if __name__ == "__main__":
 	total_time = end_time - start_time
 	print(total_time)
 	print("Finished in {} hours, {} minutes and {} seconds!".format(int(np.floor(total_time / 3600)), int(np.floor( (total_time / 60) % 60)),  int(np.floor(total_time % 60))))
-
+	'''
 	sys.exit()
