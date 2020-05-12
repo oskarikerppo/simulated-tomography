@@ -195,16 +195,12 @@ def calculate_expectation(POVM, input_state, outcomes, i, n):
 	return np.real((tensor(effects) * input_state).tr())
 
 
-def main(n, k, q1, q2, input_state, POVM, expectations, start, step, state_name, meas_name, num_of_runs, seed=False):
+def main(n, k, qlist, input_state, POVM, expectations, state_name, meas_name, seed=False):
 	
 	s0 = time()
 
 	if seed:
 		random.seed(seed)
-
-	calculate_average = False
-	if q1 == 0 and q2 == 0:
-		calculate_average = True
 
 	povm_string = ""
 	for i in range(len(POVM)):
@@ -220,31 +216,12 @@ def main(n, k, q1, q2, input_state, POVM, expectations, start, step, state_name,
 
 	s1 = time()
 	print(s1 - s0)
-
-
-
 	s2 = time()
-
-
-	'''
-	for i in range(len(m_obs)):
-		expectations.append(np.real((m_obs[i] * input_state).tr()))
-	'''
 	
 	print("Simulating statistics")
 	#Simulate outcome statistics
-	'''
-	for i in range(k):
-		rand = random.uniform(0, 1)
-		cumulated_probability = 0
-		for j in range(len(expectations)):
-			cumulated_probability += expectations[j]
-			if rand < cumulated_probability:
-				M[outcomes[j]] += 1
-				break
-	'''
 	
-	sim = np.random.choice(outcomes, k, p=expectations)
+	sim = np.random.choice(outcomes, size=k, p=expectations)
 	s25 = time()
 	print(s25 - s2)
 	print("Assigning values to dict")
@@ -255,59 +232,39 @@ def main(n, k, q1, q2, input_state, POVM, expectations, start, step, state_name,
 
 	s3 = time()
 	print(s3 - s25)
-	#Reconstruct 2-qubit states from outcome statistic
-
+	#Reconstruct k-qubit states from outcome statistic
+	k_wise = len(qlist)
 	
 
-	print("Listing 2-qubit outcomes and forming effects")
-	#2-qubit optimization, maximum likelihood
+	print("Listing k-qubit outcomes and forming effects")
+	#k-qubit optimization, maximum likelihood
 
-	#2-qubit observable
+	#k-qubit observable
 	M2 = {}
 	outcomes2 = []
-	for i, item in enumerate(itertools.product(povm_string, repeat=2)):
+	for i, item in enumerate(itertools.product(povm_string, repeat=k_wise)):
 		M2["".join(item)] = 0
 		outcomes2.append("".join(item))
 
 	m_2_obs = {}
 	for i in range(len(outcomes2)):
-		effects = []
-		for j in range(2):
-			effects.append(POVM[int(outcomes2[i][j])])
+		effects = [POVM[int(outcomes2[i][j])] for j in range(k_wise)]
 		m_2_obs[outcomes2[i]] = np.array(tensor(effects))
 
 
 	s4 = time()
 	print(s4 - s3)
 
-	if calculate_average:
-		avg_fids = []
-		for q_1 in range(n):
-			for q_2 in range(q_1 + 1, n):
-				qlist = (q1, q2)
-				partial_W = Qobj(np.array(input_state.ptrace([q_1, q_2])))
-				print("Inferring state")
-				sol_den =	infer_state(M, qlist, m_2_obs, tol=1e-15, maxiter=1000, epsilon_range=1e-8, n_epsilons=1000)
-				s5 = time()
-				print(s5 - s4)
-				sol_den = Qobj(sol_den)
-				fid = fidelity(partial_W, sol_den)
-
-				avg_fids.append(fid)
-		print("Total time: {} minutes".format((time() - s0)/60))
-		return avg_fids
-	else:
-		qlist = (q1, q2)
-		partial_W = Qobj(np.array(input_state.ptrace([q1, q2])))
-		print("Inferring state")
-		sol_den =	infer_state(M, qlist, m_2_obs, tol=1e-15, maxiter=1000, epsilon_range=1e-8, n_epsilons=1000)
-		s5 = time()
-		print(s5 - s4)
-		sol_den = Qobj(sol_den)
-		fid = fidelity(partial_W, sol_den)
-		print(fid)
-		print("Total time: {} minutes".format((time() - s0)/60))
-		return fid
+	partial_W = Qobj(np.array(input_state.ptrace(list(qlist))))
+	print("Inferring state")
+	sol_den =	infer_state(M, qlist, m_2_obs, tol=1e-15, maxiter=1000, epsilon_range=1e-8, n_epsilons=1000)
+	s5 = time()
+	print(s5 - s4)
+	sol_den = Qobj(sol_den)
+	fid = fidelity(partial_W, sol_den)
+	print(fid)
+	print("Total time: {} minutes".format((time() - s0)/60))
+	return fid
 
 def w_state(n):
 	w_vec = []
@@ -359,7 +316,7 @@ print(s1 - s0)
 
 fids = []
 for i in range(50):
-	fids.append(main(8, 8192*20, 0, 1, init_state, E, expectations, 1, 1, "W", "sic", 10, seed=False))
+	fids.append(main(8, 8192*20, (1, 4, 5, 7), init_state, E, expectations, "W", "sic", seed=False))
 print(np.std(fids))
 print(np.average(fids))
 
