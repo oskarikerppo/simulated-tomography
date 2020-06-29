@@ -15,12 +15,34 @@ import simulate_povm
 haar_ket = rand_ket_haar(N=3, dims=None, seed=None)
 
 haar_dm = haar_ket * haar_ket.dag()
-'''
-print(haar_ket)
-print(haar_dm)
-print(np.linalg.eig(haar_dm)[0])
-print(np.linalg.matrix_rank(haar_dm))
-'''
+
+def state_0000():
+	one = tensor([basis(2,0) for i in range(4)])
+	zero = tensor([basis(2,1) for i in range(4)])
+	dm = (zero * zero.dag() + one * one.dag()) / 2
+	return dm
+
+
+def state_0011():
+	s_00 = tensor([basis(2,1), basis(2,1)])
+	s_01 = tensor([basis(2,1), basis(2,0)])
+	s_10 = tensor([basis(2,0), basis(2,1)])
+	s_11 = tensor([basis(2,0), basis(2,0)])
+	s = [s_00, s_01, s_10, s_11]
+	dm = sum([tensor(x * x.dag(), x * x.dag()) for x in s]) / 4
+	return dm
+
+print(state_0000().shape)
+print(state_0000().dims)
+
+print(state_0011().shape)
+print(state_0011().dims)
+
+print(Qobj(state_0000().data).shape)
+print(Qobj(state_0000().data).dims)
+
+
+
 def random_state(A=2, B=2, rank_lmt=2):
 	a_ket = rand_ket_haar(N=2**A, dims=None, seed=None)
 	b_ket = rand_ket_haar(N=2**B, dims=None, seed=None)
@@ -67,14 +89,27 @@ def calculate_expectation(POVM, input_state, outcomes, i, n):
 	effects = [POVM[int(outcomes[i][j])] for j in range(n)]
 	return np.real((Qobj(np.array(tensor(effects))) * input_state).tr())
 
-	'''
-	print(total_dm)
-	print(np.linalg.eig(total_dm)[0])
-	print(np.linalg.matrix_rank(total_dm))
-	print(total_dm.tr())
-	'''
-	#print(sum([np.linalg.matrix_rank(x) for x in dms]))
-	#print(len(dms))
+def one_to_three(key):
+	indices = [0, 1, 2, 3]
+	transposed = [indices.pop(key.find('1'))]
+	return transposed, indices
+
+
+def two_to_two(key):
+	indices = [0, 1, 2, 3]
+	transposed = [indices[int(i)] for i in range(4) if key[i] == '1']
+	original = [indices[int(i)] for i in range(4) if key[i] == '0']
+	return transposed, original
+
+
+'''
+print(total_dm)
+print(np.linalg.eig(total_dm)[0])
+print(np.linalg.matrix_rank(total_dm))
+print(total_dm.tr())
+'''
+#print(sum([np.linalg.matrix_rank(x) for x in dms]))
+#print(len(dms))
 
 #print(x)
 '''
@@ -142,10 +177,10 @@ for i in range(len(E)):
 	povm_string += str(i)
 
 outcomes = []
-for i, item in enumerate(itertools.product(povm_string, repeat=3)):
+for i, item in enumerate(itertools.product(povm_string, repeat=4)):
 	outcomes.append("".join(item))
 
-expectations = np.array([calculate_expectation(E, init_state, outcomes, i, 3) for i in range(len(outcomes))])
+#expectations = np.array([calculate_expectation(E, init_state, outcomes, i, 4) for i in range(len(outcomes))])
 s1 = time()
 print(s1 - s0)
 
@@ -164,32 +199,59 @@ except:
 	pass
 
 
-max_rank = 9
-if not fid_res:
-	for rank in range(1, max_rank):
-		print("Rank: {}".format(rank))
-		fids = []
-		negativities = []
-		entropies = []
-		rounds = 50
-		for i in range(rounds):
-			print("Round {} of {}".format(i, rounds))
-			init_state = random_state(1,2, rank_lmt=rank)
-			init_state = Qobj(init_state.data)
-			expectations = np.array([calculate_expectation(E, init_state, outcomes, i, 3) for i in range(len(outcomes))])
-			res = simulate_povm.main(3, 8192*20, (0, 1, 2), init_state, E, expectations, "W", "sic", seed=False)
-			fids.append(res[0])
-			total_dm = Qobj(res[1], dims=[[2, 4], [2, 4]], shape=[8, 8])
-			original_dm = Qobj(res[2], dims=[[2, 4], [2, 4]], shape=[8, 8])
-			transpose_dm = partial_transpose(total_dm, [1,0])
+max_rank = 2
+if  not fid_res:
+	#for rank in range(1, max_rank):
+	init_state = state_0011()
+	fids = []
+	negativities = {'1000': [], '0100': [], '0010': [], '0001': [],
+					'1100': [], '1010': [], '1001': [], '0110': [], '0101': [], '0011': []}
+	entropies = {'1000': [], '0100': [], '0010': [], '0001': [],
+					'1100': [], '1010': [], '1001': [], '0110': [], '0101': [], '0011': []}
+	rounds = 2000
+	times = [time()]
+	spent_times = []
+	for i in range(rounds):
+		print("Round {} of {}".format(i, rounds))
+		init_state = Qobj(init_state.data)
+		expectations = np.array([calculate_expectation(E, init_state, outcomes, i, 4) for i in range(len(outcomes))])
+		res = simulate_povm.main(4, 8192*20, (0, 1, 2, 3), init_state, E, expectations, "W", "sic", seed=False)
+		fids.append(res[0])
+
+		total_dm = Qobj(res[1], dims=[[2, 2, 2, 2], [2, 2, 2, 2]], shape=[16, 16])
+		original_dm = Qobj(res[2], dims=[[2, 2, 2, 2], [2, 2, 2, 2]], shape=[16, 16])
+
+		#1-to-3
+		for key in ['1000', '0100', '0010', '0001']:
+			transpose_dm = partial_transpose(total_dm, [int(x) for x in key])
 			eigs = np.linalg.eig(transpose_dm)[0]
 			eigs = [np.real(x) for x in eigs]
 			negativity = sum([abs(x) for x in eigs if x < 0])
-			negativities.append(negativity)
-			entropies.append(entropy_mutual(total_dm, 0, 1, base=2))
-		fid_res[rank] = fids
-		neg_res[rank] = negativities
-		ent_res[rank] = entropies
+			negativities[key].append(negativity)
+			partition = one_to_three(key)
+			entropies[key].append(entropy_mutual(total_dm, partition[0], partition[1], base=2))
+
+		#2-to-2
+		for key in ['1100', '1010', '1001', '0110', '0101', '0011']:
+			transpose_dm = partial_transpose(total_dm, [int(x) for x in key])
+			eigs = np.linalg.eig(transpose_dm)[0]
+			eigs = [np.real(x) for x in eigs]
+			negativity = sum([abs(x) for x in eigs if x < 0])
+			negativities[key].append(negativity)
+			partition = two_to_two(key)
+			entropies[key].append(entropy_mutual(total_dm, partition[0], partition[1], base=2))
+
+		#time left
+		times.append(time())
+		spent_times.append((times[-1] - times[-2]) / 60)
+		print("Time since start: {} minutes".format((times[-1] - times[0]) / 60 ))
+		print("Time this round: {} minutes".format((times[-1] - times[-2]) / 60))
+		print("Estimated time left: {} hours".format(np.average(spent_times) * (rounds - i + 1) / 60))
+
+
+	fid_res['0011state'] = fids
+	neg_res['0011state'] = negativities
+	ent_res['0011state'] = entropies
 	with open(r'Results\Negativity\fid_res.pkl', 'wb') as f:
 		pickle.dump(fid_res, f)
 	with open(r'Results\Negativity\neg_res.pkl', 'wb') as f:
@@ -198,25 +260,39 @@ if not fid_res:
 		pickle.dump(ent_res, f)
 
 
-average_negs = [np.average(neg_res[i]) for i in range(1, max_rank)]
-std_negs = [np.std(neg_res[i]) for i in range(1, max_rank)]
-sem_negs = [stats.sem(fid_res[i]) for i in range(1, max_rank)]
+average_negs_31 = np.average(neg_res['0011state']['1000'])
+average_negs_22 = np.average(neg_res['0011state']['1100'])
+average_negs = [average_negs_31, average_negs_22]
 
-average_ents = [np.average(ent_res[i]) for i in range(1, max_rank)]
-std_ents = [np.std(ent_res[i]) for i in range(1, max_rank)]
-sem_ents = [stats.sem(fid_res[i]) for i in range(1, max_rank)]
+std_negs_31 = np.std(neg_res['0011state']['1000'])
+std_negs_22 = np.std(neg_res['0011state']['1100'])
+std_negs = [std_negs_31, std_negs_22]
 
-average_fids = [np.average(fid_res[i]) for i in range(1, max_rank)]
-std_fids = [np.std(fid_res[i]) for i in range(1, max_rank)]
-sem_fids = [stats.sem(fid_res[i]) for i in range(1, max_rank)]
+sem_negs_31 = stats.sem(neg_res['0011state']['1000'])
+sem_negs_22 = stats.sem(neg_res['0011state']['1100'])
+
+average_ents_31 = np.average(ent_res['0011state']['1000'])
+average_ents_22 = np.average(ent_res['0011state']['1100'])
+average_ents = [average_ents_31, average_ents_22]
+
+std_ents_31 = np.std(ent_res['0011state']['1000'])
+std_ents_22 = np.std(ent_res['0011state']['1100'])
+std_ents = [std_ents_31, std_ents_22]
+
+sem_ents_31 = stats.sem(ent_res['0011state']['1000'])
+sem_ents_22 = stats.sem(ent_res['0011state']['1100'])
+
+average_fids = [np.average(fid_res['0011state'])]
+std_fids = [np.std(fid_res['0011state'])]
+sem_fids = [stats.sem(fid_res['0011state'])]
 
 data = [average_negs, average_ents]
-ranks = [range(1, max_rank)]
+xlabels = ['3-to-1', '2-to-2']
 
 
 # create plot
 fig, ax = plt.subplots()
-index = np.arange(max_rank-1)
+index = np.arange(2)
 bar_width = 0.35
 opacity = 0.8
 
@@ -235,19 +311,42 @@ label='Mutual entropy')
 plt.xlabel('Matrix rank')
 plt.ylabel('Entropy/Negativity')
 plt.title('Negativity/Entropy of random states of given rank')
-plt.xticks(index + bar_width/2, tuple([str(i) for i in range(1, max_rank)]))
+plt.xticks(index + bar_width/2, tuple(xlabels))
 plt.legend()
 
 plt.tight_layout()
 plt.show()
 
 
-for rank in range(1, max_rank):
-	plt.scatter(ent_res[rank], neg_res[rank])
+for i in range(2):
+	keys = ['1000', '1100']
+	key = keys[i]
+	plt.scatter(ent_res['0011state'][key], neg_res['0011state'][key])
 	plt.xlabel("Entropy")
 	plt.ylabel("Negativity")
-	plt.title("Entropy vs negativity, rank {}".format(rank))
+	plt.title("Entropy vs negativity, {}".format(xlabels[i]))
 	plt.show()
+
+print(average_negs)
+print(std_negs)
+
+print(average_ents)
+print(std_ents)
+
+print(average_fids)
+print(std_fids)
+
+
+plt.hist(neg_res['0011state']['0101'], bins=20)
+plt.show()
+
+
+#Do it for 4-qubit states: 1-to-3 and 2-to-2
+#Do it for 1/2 (|0000><0000| + |1111><1111|)
+#Do it for 1/4 sum_b2 |b2><b2| \otimes |b2><b2|
+#b2 = 00, 01, 10, 11
+
+
 '''
 print(np.average(negativities))
 print(np.average(entropies))
