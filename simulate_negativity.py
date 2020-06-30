@@ -428,6 +428,74 @@ plt.hist(neg_res['0011state']['0101'], bins=20)
 plt.show()
 
 
+#2-3 qubits
+
+average_negs_3 = np.average(neg_res['000_111_state']['100'])
+average_conc = np.average(neg_res['00_11_state'])
+average_negs = [average_negs_3, average_conc]
+
+std_negs_3 = np.std(neg_res['000_111_state']['100'])
+std_conc = np.std(neg_res['00_11_state'])
+std_negs = [std_negs_3, std_conc]
+
+sem_negs_3 = stats.sem(neg_res['000_111_state']['100'])
+sem_conc = stats.sem(neg_res['00_11_state'])
+
+average_ents_3 = np.average(ent_res['000_111_state']['100'])
+average_ents_2 = np.average(ent_res['00_11_state'])
+average_ents = [average_ents_3, average_ents_2]
+
+std_ents_3 = np.std(ent_res['000_111_state']['100'])
+std_ents_2 = np.std(ent_res['00_11_state'])
+std_ents = [std_ents_3, std_ents_2]
+
+sem_ents_3 = stats.sem(ent_res['000_111_state']['100'])
+sem_ents_2 = stats.sem(ent_res['00_11_state'])
+
+average_fids = [np.average(fid_res['000_111_state'])]
+std_fids = [np.std(fid_res['000_111_state'])]
+sem_fids = [stats.sem(fid_res['000_111_state'])]
+
+data = [average_negs, average_ents]
+xlabels = ['3-qubit', '2-qubit']
+
+
+# create plot
+fig, ax = plt.subplots()
+index = np.arange(2)
+bar_width = 0.35
+opacity = 0.8
+
+rects1 = plt.bar(index, data[0], bar_width,
+yerr=std_negs,
+alpha=opacity,
+color='b',
+label='Negativity')
+
+rects2 = plt.bar(index + bar_width, data[1], bar_width,
+yerr=std_ents,	
+alpha=opacity,
+color='g',
+label='Mutual entropy')
+
+plt.xlabel('Matrix rank')
+plt.ylabel('Entropy/Negativity')
+plt.title('Negativity/Entropy of random states of given rank')
+plt.xticks(index + bar_width/2, tuple(xlabels))
+plt.legend()
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
+
+
+
+
 #Do it for 4-qubit states: 1-to-3 and 2-to-2
 #Do it for 1/2 (|0000><0000| + |1111><1111|)
 #Do it for 1/4 sum_b2 |b2><b2| \otimes |b2><b2|
