@@ -32,6 +32,28 @@ def state_0011():
 	dm = sum([tensor(x * x.dag(), x * x.dag()) for x in s]) / 4
 	return dm
 
+def state_00_11():
+	s00 = tensor([basis(2, 0), basis(2, 0)])
+	s11 = tensor([basis(2, 1), basis(2, 1)])
+	dm = (s00 * s00.dag() + s11 * s11.dag())/2
+	return dm
+
+def state_000_111():
+	s00 = tensor([basis(2, 0), basis(2, 0), basis(2, 0)])
+	s11 = tensor([basis(2, 1), basis(2, 1), basis(2, 1)])
+	dm = (s00 * s00.dag() + s11 * s11.dag())/2
+	return dm
+
+
+print(state_00_11())
+print(state_00_11().dims)
+print(state_00_11().shape)
+print(state_000_111())
+print(state_000_111().dims)
+print(state_000_111().shape)
+
+
+
 print(state_0000().shape)
 print(state_0000().dims)
 
@@ -89,17 +111,16 @@ def calculate_expectation(POVM, input_state, outcomes, i, n):
 	effects = [POVM[int(outcomes[i][j])] for j in range(n)]
 	return np.real((Qobj(np.array(tensor(effects))) * input_state).tr())
 
-def one_to_three(key):
-	indices = [0, 1, 2, 3]
+def one_to_three(key, indices):
 	transposed = [indices.pop(key.find('1'))]
 	return transposed, indices
 
 
-def two_to_two(key):
-	indices = [0, 1, 2, 3]
-	transposed = [indices[int(i)] for i in range(4) if key[i] == '1']
-	original = [indices[int(i)] for i in range(4) if key[i] == '0']
+def two_to_two(key, indices, max_ind):
+	transposed = [indices[int(i)] for i in range(max_ind) if key[i] == '1']
+	original = [indices[int(i)] for i in range(max_ind) if key[i] == '0']
 	return transposed, original
+
 
 
 '''
@@ -180,6 +201,14 @@ outcomes = []
 for i, item in enumerate(itertools.product(povm_string, repeat=4)):
 	outcomes.append("".join(item))
 
+two_outcomes = []
+for i, item in enumerate(itertools.product(povm_string, repeat=2)):
+	two_outcomes.append("".join(item))
+
+three_outcomes = []
+for i, item in enumerate(itertools.product(povm_string, repeat=3)):
+	three_outcomes.append("".join(item))
+
 #expectations = np.array([calculate_expectation(E, init_state, outcomes, i, 4) for i in range(len(outcomes))])
 s1 = time()
 print(s1 - s0)
@@ -203,18 +232,36 @@ max_rank = 2
 if  not fid_res:
 	#for rank in range(1, max_rank):
 	init_state = state_0011()
+	two_qubit_state = state_00_11()
+	three_qubit_state = state_000_111()
 	fids = []
+	two_fids = []
+	three_fids = []
 	negativities = {'1000': [], '0100': [], '0010': [], '0001': [],
 					'1100': [], '1010': [], '1001': [], '0110': [], '0101': [], '0011': []}
 	entropies = {'1000': [], '0100': [], '0010': [], '0001': [],
 					'1100': [], '1010': [], '1001': [], '0110': [], '0101': [], '0011': []}
-	rounds = 2000
+
+	two_concurrence = []
+	two_entropies = []
+	three_negativities = {'100': [], '010': [], '001': [],
+						  '110': [], '101': [], '011': []}
+	three_entropies = {'100': [], '010': [], '001': [],
+					   '110': [], '101': [], '011': []}
+
+
+
+	rounds = 100
 	times = [time()]
 	spent_times = []
+	init_state = Qobj(init_state.data)
+	two_qubit_state = Qobj(two_qubit_state.data)
+	three_qubit_state = Qobj(three_qubit_state.data)
+	expectations = np.array([calculate_expectation(E, init_state, outcomes, i, 4) for i in range(len(outcomes))])
+	two_ecpectations = np.array([calculate_expectation(E, two_qubit_state, two_outcomes, i, 2) for i in range(len(two_outcomes))])
+	three_ecpectations = np.array([calculate_expectation(E, three_qubit_state, three_outcomes, i, 3) for i in range(len(three_outcomes))])
 	for i in range(rounds):
 		print("Round {} of {}".format(i, rounds))
-		init_state = Qobj(init_state.data)
-		expectations = np.array([calculate_expectation(E, init_state, outcomes, i, 4) for i in range(len(outcomes))])
 		res = simulate_povm.main(4, 8192*20, (0, 1, 2, 3), init_state, E, expectations, "W", "sic", seed=False)
 		fids.append(res[0])
 
@@ -228,7 +275,7 @@ if  not fid_res:
 			eigs = [np.real(x) for x in eigs]
 			negativity = sum([abs(x) for x in eigs if x < 0])
 			negativities[key].append(negativity)
-			partition = one_to_three(key)
+			partition = one_to_three(key, [0, 1, 2, 3])
 			entropies[key].append(entropy_mutual(total_dm, partition[0], partition[1], base=2))
 
 		#2-to-2
@@ -238,9 +285,43 @@ if  not fid_res:
 			eigs = [np.real(x) for x in eigs]
 			negativity = sum([abs(x) for x in eigs if x < 0])
 			negativities[key].append(negativity)
-			partition = two_to_two(key)
+			partition = two_to_two(key, [0, 1, 2, 3], 4)
 			entropies[key].append(entropy_mutual(total_dm, partition[0], partition[1], base=2))
 
+		#Fake concurrence
+		res = simulate_povm.main(2, 8192*20, (0, 1), two_qubit_state, E, two_ecpectations, "W", "sic", seed=False)
+		two_fids.append(res[0])
+		total_dm = Qobj(res[1], dims=[[2, 2], [2, 2]], shape=[4, 4])
+		original_dm = Qobj(res[2], dims=[[2, 2], [2, 2]], shape=[4, 4])
+		two_concurrence.append(concurrence(total_dm))
+		two_entropies.append(entropy_mutual(total_dm, [0], [1], base=2))
+
+		#Three qubit
+		res = simulate_povm.main(3, 8192*20, (0, 1, 2), three_qubit_state, E, three_ecpectations, "W", "sic", seed=False)
+		three_fids.append(res[0])
+
+		total_dm = Qobj(res[1], dims=[[2, 2, 2], [2, 2, 2]], shape=[8, 8])
+		original_dm = Qobj(res[2], dims=[[2, 2, 2], [2, 2, 2]], shape=[8, 8])
+
+		#1-to-3
+		for key in ['100', '010', '001']:
+			transpose_dm = partial_transpose(total_dm, [int(x) for x in key])
+			eigs = np.linalg.eig(transpose_dm)[0]
+			eigs = [np.real(x) for x in eigs]
+			negativity = sum([abs(x) for x in eigs if x < 0])
+			three_negativities[key].append(negativity)
+			partition = one_to_three(key, [0, 1, 2])
+			three_entropies[key].append(entropy_mutual(total_dm, partition[0], partition[1], base=2))
+
+		#2-to-2
+		for key in ['110', '101', '101']:
+			transpose_dm = partial_transpose(total_dm, [int(x) for x in key])
+			eigs = np.linalg.eig(transpose_dm)[0]
+			eigs = [np.real(x) for x in eigs]
+			negativity = sum([abs(x) for x in eigs if x < 0])
+			three_negativities[key].append(negativity)
+			partition = two_to_two(key, [0, 1, 2], 3)
+			three_entropies[key].append(entropy_mutual(total_dm, partition[0], partition[1], base=2))
 		#time left
 		times.append(time())
 		spent_times.append((times[-1] - times[-2]) / 60)
@@ -250,8 +331,14 @@ if  not fid_res:
 
 
 	fid_res['0011state'] = fids
+	fid_res['00_11_state'] = two_fids
+	fid_res['000_111_state'] = three_fids
 	neg_res['0011state'] = negativities
+	neg_res['00_11_state'] = two_concurrence
+	neg_res['000_111_state'] = three_negativities
 	ent_res['0011state'] = entropies
+	ent_res['00_11_state'] = two_entropies
+	ent_res['000_111_state'] = three_entropies
 	with open(r'Results\Negativity\fid_res.pkl', 'wb') as f:
 		pickle.dump(fid_res, f)
 	with open(r'Results\Negativity\neg_res.pkl', 'wb') as f:
