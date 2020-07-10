@@ -251,7 +251,7 @@ if  not fid_res:
 
 
 
-	rounds = 100
+	rounds = 10000
 	times = [time()]
 	spent_times = []
 	init_state = Qobj(init_state.data)
