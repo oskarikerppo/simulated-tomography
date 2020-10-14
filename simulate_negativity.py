@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import pickle
 from time import time
 import simulate_povm
+from pathlib import Path
+import os
 
 
 
@@ -218,11 +220,16 @@ neg_res = {}
 ent_res = {}
 
 try:
-	with open(r'Results\Negativity\fid_res.pkl', 'rb') as f:
+	working_directory = Path(os.getcwd())
+	data_folder = working_directory / "Results/Negativity/"
+	fid_file = data_folder / "fid_res.pkl"
+	neg_file = data_folder / "neg_res.pkl"
+	ent_file = data_folder / "ent_res.pkl"
+	with open(fid_file, 'rb') as f:
 		fid_res = pickle.load(f)
-	with open(r'Results\Negativity\neg_res.pkl', 'rb') as f:
+	with open(neg_file, 'rb') as f:
 		neg_res = pickle.load(f)
-	with open(r'Results\Negativity\ent_res.pkl', 'rb') as f:
+	with open(ent_file, 'rb') as f:
 		ent_res = pickle.load(f)
 except:
 	pass
