@@ -457,7 +457,7 @@ std_fids = [np.std(fid_res['000_111_state'])]
 sem_fids = [stats.sem(fid_res['000_111_state'])]
 
 data = [average_negs, average_ents]
-xlabels = ['3-qubit', '2-qubit']
+xlabels = ['Negativity', 'Concurrence']
 
 
 # create plot
@@ -470,7 +470,7 @@ rects1 = plt.bar(index, data[0], bar_width,
 yerr=std_negs,
 alpha=opacity,
 color='b',
-label='Negativity')
+label='Negativity/Concurrence')
 
 rects2 = plt.bar(index + bar_width, data[1], bar_width,
 yerr=std_ents,	
@@ -482,7 +482,7 @@ plt.xlabel('Matrix rank')
 plt.ylabel('Entropy/Negativity')
 plt.title('Negativity/Entropy of random states of given rank')
 plt.xticks(index + bar_width/2, tuple(xlabels))
-plt.legend()
+plt.legend(loc='upper left')
 
 plt.tight_layout()
 plt.show()
