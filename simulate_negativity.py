@@ -12,6 +12,61 @@ from pathlib import Path
 import os
 
 
+def set_size(width, fraction=1):
+    """Set figure dimensions to avoid scaling in LaTeX.
+
+    Parameters
+    ----------
+    width: float
+            Document textwidth or columnwidth in pts
+    fraction: float, optional
+            Fraction of the width which you wish the figure to occupy
+
+    Returns
+    -------
+    fig_dim: tuple
+            Dimensions of figure in inches
+    """
+    # Width of figure (in pts)
+    fig_width_pt = width * fraction
+
+    # Convert from pt to inches
+    inches_per_pt = 1 / 72.27
+
+    # Golden ratio to set aesthetic figure height
+    # https://disq.us/p/2940ij3
+    golden_ratio = (5**.5 - 1) / 2
+
+    # Figure width in inches
+    fig_width_in = fig_width_pt * inches_per_pt
+    # Figure height in inches
+    fig_height_in = fig_width_in * golden_ratio
+
+    fig_dim = (fig_width_in, fig_height_in)
+
+    return fig_dim
+
+width = 360
+#'''
+tex_fonts = {
+    # Use LaTeX to write all text
+    "text.usetex": True,
+    "font.family": "serif",
+    # Use 10pt font in plots, to match 10pt font in document
+    "axes.labelsize": 10,
+    "font.size": 10,
+    # Make the legend/label fonts a little smaller
+    "legend.fontsize": 8,
+    "xtick.labelsize": 8,
+    "ytick.labelsize": 8
+}
+
+plt.rcParams.update(tex_fonts)
+#'''
+#plt.rc('text', usetex = True)
+fig_size = set_size(width)
+
+
 
 
 haar_ket = rand_ket_haar(N=3, dims=None, seed=None)
@@ -33,6 +88,8 @@ def state_0011():
 	s = [s_00, s_01, s_10, s_11]
 	dm = sum([tensor(x * x.dag(), x * x.dag()) for x in s]) / 4
 	return dm
+
+
 
 def state_00_11():
 	s00 = tensor([basis(2, 0), basis(2, 0)])
@@ -385,7 +442,7 @@ xlabels = ['3-to-1', '2-to-2']
 
 
 # create plot
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=fig_size)
 index = np.arange(2)
 bar_width = 0.35
 opacity = 0.8
@@ -402,24 +459,36 @@ alpha=opacity,
 color='g',
 label='Mutual entropy')
 
-plt.xlabel('Matrix rank')
+#plt.xlabel('Partition')
 plt.ylabel('Entropy/Negativity')
-plt.title('Negativity/Entropy of random states of given rank')
+#plt.title('Negativity/Entropy of random states of given rank')
 plt.xticks(index + bar_width/2, tuple(xlabels))
 plt.legend()
 
 plt.tight_layout()
-plt.show()
+#plt.show()
+fig.savefig('Figures/Negativity results/4-qubit-negativity.pdf', format='pdf', bbox_inches='tight')
+
+print("Results: negativity, stdneg, entropy, stdent")
+print(data[0])
+print(std_negs)
+print(data[1])
+print(std_ents)
+
 
 
 for i in range(2):
 	keys = ['1000', '1100']
 	key = keys[i]
-	plt.scatter(ent_res['0011state'][key], neg_res['0011state'][key])
+	plt.figure(figsize=fig_size)
+	plt.scatter(ent_res['0011state'][key], neg_res['0011state'][key], s=0.2)
 	plt.xlabel("Entropy")
 	plt.ylabel("Negativity")
-	plt.title("Entropy vs negativity, {}".format(xlabels[i]))
-	plt.show()
+	#plt.title("Entropy vs negativity, {}".format(xlabels[i]))
+	#plt.show()
+	plt.savefig('Figures/Negativity results/entropy-vs-negativity-{}.pdf'.format(key), format='pdf', bbox_inches='tight')
+
+	
 
 print(average_negs)
 print(std_negs)
@@ -430,10 +499,10 @@ print(std_ents)
 print(average_fids)
 print(std_fids)
 
-
-plt.hist(neg_res['0011state']['0101'], bins=20)
-plt.show()
-
+plt.figure(figsize=fig_size)
+plt.hist(neg_res['0011state']['1100'], bins=20)
+#plt.show()
+plt.savefig('Figures/Negativity results/negativity-histogram.pdf', format='pdf', bbox_inches='tight')
 
 #2-3 qubits
 
@@ -468,7 +537,7 @@ xlabels = ['Negativity', 'Concurrence']
 
 
 # create plot
-fig, ax = plt.subplots()
+fig, ax = plt.subplots(figsize=fig_size)
 index = np.arange(2)
 bar_width = 0.35
 opacity = 0.8
@@ -485,16 +554,21 @@ alpha=opacity,
 color='g',
 label='Mutual entropy')
 
-plt.xlabel('Matrix rank')
+#plt.xlabel('Partition')
 plt.ylabel('Entropy/Negativity')
-plt.title('Negativity/Entropy of random states of given rank')
+#plt.title('Negativity/Entropy of random states of given rank')
 plt.xticks(index + bar_width/2, tuple(xlabels))
-plt.legend(loc='upper left')
+plt.legend(loc='center left')
 
 plt.tight_layout()
-plt.show()
+#plt.show()
+plt.savefig('Figures/Negativity results/2-and-3-qubit-negativity.pdf', format='pdf', bbox_inches='tight')
 
-
+print("Results: negativity, stdneg, entropy, stdent")
+print(data[0])
+print(std_negs)
+print(data[1])
+print(std_ents)
 
 
 
