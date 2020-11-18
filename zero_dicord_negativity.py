@@ -116,11 +116,11 @@ try:
 except:
 	pass
 
-append_new_results = True
+append_new_results = False
 
-rounds = 1000
+rounds = 100
 
-rank = 4
+rank = 2
 
 theta = np.pi * random.random() / 2
 
@@ -193,6 +193,15 @@ plt.figure(figsize=fig_size)
 plt.scatter(negs, discs, s=10)
 plt.xlabel("Negativity")
 plt.ylabel("Discord")
+#plt.title("Entropy vs negativity, {}".format(xlabels[i]))
+plt.show()
+#plt.savefig('Figures/Negativity results/entropy-vs-negativity-zero-discord.pdf', format='pdf', bbox_inches='tight')
+
+ccorrelation = [ents[i] - discs[i] for i in range(len(ents))]
+plt.figure(figsize=fig_size)
+plt.scatter(ccorrelation, negs, s=10)
+plt.xlabel("Classical correlation")
+plt.ylabel("Negativity")
 #plt.title("Entropy vs negativity, {}".format(xlabels[i]))
 plt.show()
 #plt.savefig('Figures/Negativity results/entropy-vs-negativity-zero-discord.pdf', format='pdf', bbox_inches='tight')
