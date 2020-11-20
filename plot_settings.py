@@ -54,3 +54,7 @@ tex_fonts = {
 plt.rcParams.update(tex_fonts)
 
 fig_size = set_size(width)
+
+bar_width = 0.35
+opacity = 0.8
+scatter_size = 0.2
