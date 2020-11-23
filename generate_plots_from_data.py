@@ -4,12 +4,27 @@ from pathlib import Path
 import pickle
 import os
 from scipy import stats
-from plot_settings import *
+import plot_settings
+
+
+#Initialize plot settings
+PlotSettings = plot_settings.PlotSettings()
+
+plt.rcParams.update(PlotSettings.tex_fonts)
+
+fig_size = PlotSettings.set_size()
+
 
 
 """
 Loads data files and produces plots.
 Matplotlib settings are imported from plot_settings
+"""
+
+"""
+Note: pathlib is used, because I tried to get the paths to work on both ubuntu and windows.
+Currently I only use ubuntu so this is not guaranteed to work on macOS or windows.
+Modify as needed until the data loads
 """
 
 try:
@@ -79,23 +94,23 @@ fig, ax = plt.subplots(figsize=fig_size)
 index = np.arange(2)
 
 #Rectangles for average negativities with standard deviation
-rects1 = plt.bar(index, data[0], bar_width,
+rects1 = plt.bar(index, data[0], PlotSettings.bar_width,
 yerr=std_negs,
-alpha=opacity,
+alpha=PlotSettings.opacity,
 color='b',
 label='Negativity')
 
 #Rectangles for average mutual entropy with standard deviation
-rects2 = plt.bar(index + bar_width, data[1], bar_width,
+rects2 = plt.bar(index + PlotSettings.bar_width, data[1], PlotSettings.bar_width,
 yerr=std_ents,	
-alpha=opacity,
+alpha=PlotSettings.opacity,
 color='g',
 label='Mutual entropy')
 
 
 plt.ylabel('Entropy/Negativity')
 #plt.title('Negativity/Entropy of 4-qubit state')
-plt.xticks(index + bar_width/2, tuple(xlabels))
+plt.xticks(index + PlotSettings.bar_width/2, tuple(xlabels))
 plt.legend()
 plt.tight_layout()
 plt.show()
@@ -108,10 +123,10 @@ This is done for the 4-qubit state with partitions 1000 and 1100
 """
 
 for i in range(2):
-	keys = ['1000', '1100']
+	keys = ['1000', '1100'] #Choose partitions
 	key = keys[i]
 	plt.figure(figsize=fig_size)
-	plt.scatter(ent_res['0011state'][key], neg_res['0011state'][key], s=scatter_size)
+	plt.scatter(ent_res['0011state'][key], neg_res['0011state'][key], s=PlotSettings.scatter_size)
 	plt.xlabel("Entropy")
 	plt.ylabel("Negativity")
 	#plt.title("Entropy vs negativity, {}".format(xlabels[i]))
@@ -120,48 +135,57 @@ for i in range(2):
 	
 	
 
-print(average_negs)
-print(std_negs)
+#Next we produce the histogram of fake entanglement.
 
-print(average_ents)
-print(std_ents)
-
-print(average_fids)
-print(std_fids)
 
 plt.figure(figsize=fig_size)
-plt.hist(neg_res['0011state']['1100'], bins=20)
+plt.hist(neg_res['0011state']['1100'], bins=PlotSettings.num_of_bins)
 plt.show()
 #plt.savefig('Figures/Negativity results/negativity-histogram.pdf', format='pdf', bbox_inches='tight')
 
-#2-3 qubits
 
+
+"""
+Next we produce the same plot as the first figure in this code, but for 2 and 3 qubits.
+For two qubits we have fake concurrence and for 3 fake entanglement as usual.
+"""
+
+#Average negativity/concurrence
 average_negs_3 = np.average(neg_res['000_111_state']['100'])
 average_conc = np.average(neg_res['00_11_state'])
 average_negs = [average_negs_3, average_conc]
 
+#Standard deviation of fake negativities
 std_negs_3 = np.std(neg_res['000_111_state']['100'])
 std_conc = np.std(neg_res['00_11_state'])
 std_negs = [std_negs_3, std_conc]
 
+#Standard error of the mean of fake negativities
 sem_negs_3 = stats.sem(neg_res['000_111_state']['100'])
 sem_conc = stats.sem(neg_res['00_11_state'])
+sem_negs = [sem_negs_3, sem_conc]
 
+#Average mutual entropy
 average_ents_3 = np.average(ent_res['000_111_state']['100'])
 average_ents_2 = np.average(ent_res['00_11_state'])
 average_ents = [average_ents_3, average_ents_2]
 
+#Standard deviation of entropy
 std_ents_3 = np.std(ent_res['000_111_state']['100'])
 std_ents_2 = np.std(ent_res['00_11_state'])
 std_ents = [std_ents_3, std_ents_2]
 
+#Standard error of the mean of entropies
 sem_ents_3 = stats.sem(ent_res['000_111_state']['100'])
 sem_ents_2 = stats.sem(ent_res['00_11_state'])
+sem_ents = [sem_ents_3, sem_ents_2]
 
+#Average fidelities
 average_fids = [np.average(fid_res['000_111_state'])]
 std_fids = [np.std(fid_res['000_111_state'])]
 sem_fids = [stats.sem(fid_res['000_111_state'])]
 
+#Data for rectangles
 data = [average_negs, average_ents]
 xlabels = ['Negativity', 'Concurrence']
 
@@ -169,25 +193,26 @@ xlabels = ['Negativity', 'Concurrence']
 # create plot
 fig, ax = plt.subplots(figsize=fig_size)
 index = np.arange(2)
-bar_width = 0.35
-opacity = 0.8
 
-rects1 = plt.bar(index, data[0], bar_width,
+#Rectangle for negativity/concurrence
+rects1 = plt.bar(index, data[0], PlotSettings.bar_width,
 yerr=std_negs,
-alpha=opacity,
+alpha=PlotSettings.opacity,
 color='b',
 label='Negativity/Concurrence')
 
-rects2 = plt.bar(index + bar_width, data[1], bar_width,
+#Rectangle for mutual entropy
+rects2 = plt.bar(index + PlotSettings.bar_width, data[1], PlotSettings.bar_width,
 yerr=std_ents,	
-alpha=opacity,
+alpha=PlotSettings.opacity,
 color='g',
 label='Mutual entropy')
+
 
 #plt.xlabel('Partition')
 plt.ylabel('Entropy/Negativity')
 #plt.title('Negativity/Entropy of random states of given rank')
-plt.xticks(index + bar_width/2, tuple(xlabels))
+plt.xticks(index + PlotSettings.bar_width/2, tuple(xlabels))
 plt.legend(loc='center left')
 
 plt.tight_layout()
