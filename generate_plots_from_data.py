@@ -49,6 +49,20 @@ Load data for 4-qubit states according to partition 1000 or 1100
 Note that not all data is used to produce the plots. It is there, however, if one wished to use it.
 """
 
+max_1000 = 0
+
+for key in neg_res['0011state'].keys():
+	for x in neg_res['0011state'][key]:
+		if x > max_1000:
+			max_1000 = x
+
+print(max_1000)
+
+print("4-qubit maximum negativity:")
+print("1000: {}".format(max(neg_res['0011state']['1000'])))
+print("1100: {}".format(max(neg_res['0011state']['1100'])))
+
+
 #Average negativities (fake entanglement)
 average_negs_31 = np.average(neg_res['0011state']['1000'])
 average_negs_22 = np.average(neg_res['0011state']['1100'])
@@ -150,6 +164,29 @@ Next we produce the same plot as the first figure in this code, but for 2 and 3 
 For two qubits we have fake concurrence and for 3 fake entanglement as usual.
 """
 
+max_100 = 0
+max_10 = 0
+
+for key in neg_res['000_111_state'].keys():
+	for x in neg_res['000_111_state'][key]:
+		if x > max_100:
+			max_100 = x
+
+
+for x in neg_res['00_11_state']:
+	if x > max_10:
+		max_10 = x
+
+print(max_100)
+print(max_10)
+
+
+
+print("2-3-qubit maximum negativity:")
+print("100: {}".format(max(neg_res['000_111_state']['100'])))
+print("10: {}".format(max(neg_res['00_11_state'])))
+
+
 #Average negativity/concurrence
 average_negs_3 = np.average(neg_res['000_111_state']['100'])
 average_conc = np.average(neg_res['00_11_state'])
@@ -218,3 +255,80 @@ plt.legend(loc='center left')
 plt.tight_layout()
 plt.show()
 #plt.savefig('Figures/Negativity results/2-and-3-qubit-negativity.pdf', format='pdf', bbox_inches='tight')
+
+
+
+
+
+
+
+
+#Data for rectangles
+data = [[average_conc, average_negs_3], [average_negs_31, average_negs_22]]
+xlabels = ["1-to-1", "2-to-1", "3-to-1", "2-to-2"]
+
+
+# create plot
+fig, ax = plt.subplots(figsize=fig_size)
+index = np.arange(2)
+
+#Rectangle for negativity/concurrence
+rects1 = plt.bar(index, data[0], PlotSettings.bar_width,
+yerr=[std_conc, std_negs_3],
+alpha=PlotSettings.opacity,
+color=['g', 'b'],
+label='Concurrence')
+
+#Rectangle for mutual entropy
+rects2 = plt.bar(index + PlotSettings.bar_width*1.4, data[1], PlotSettings.bar_width,
+yerr=[std_negs_31, std_negs_22],	
+alpha=PlotSettings.opacity,
+color='b',
+label='Negativity')
+
+
+#plt.xlabel('Partition')
+plt.ylabel('Concurrence/Negativity')
+#plt.title('Negativity/Entropy of random states of given rank')
+plt.xticks([0, 0.5, 1, 1.5], tuple(xlabels))
+plt.legend(loc='upper left')
+
+plt.tight_layout()
+plt.show()
+#plt.savefig('Figures/Negativity results/2-3-and-4-qubit-negativity.pdf', format='pdf', bbox_inches='tight')
+
+
+
+#Data for rectangles
+data = [[average_ents_2, average_ents_3], [average_ents_31, average_ents_22]]
+xlabels = ["1-to-1", "2-to-1", "3-to-1", "2-to-2"]
+
+
+# create plot
+fig, ax = plt.subplots(figsize=fig_size)
+index = np.arange(2)
+
+#Rectangle for negativity/concurrence
+rects1 = plt.bar(index, data[0], PlotSettings.bar_width,
+yerr=[std_ents_2, std_ents_3],
+alpha=PlotSettings.opacity,
+color='b')
+#label='Mutual entropy')
+
+#Rectangle for mutual entropy
+rects2 = plt.bar(index + PlotSettings.bar_width*1.4, data[1], PlotSettings.bar_width,
+yerr=[std_ents_31, std_ents_22],	
+alpha=PlotSettings.opacity,
+color='b',
+label='Mutual entropy')
+
+
+#plt.xlabel('Partition')
+plt.ylabel('Mutual entropy')
+#plt.title('Negativity/Entropy of random states of given rank')
+plt.xticks([0, 0.5, 1, 1.5], tuple(xlabels))
+plt.legend(loc='upper left')
+
+plt.tight_layout()
+plt.show()
+#plt.savefig('Figures/Negativity results/2-3-and-4-qubit-entropies.pdf', format='pdf', bbox_inches='tight')
