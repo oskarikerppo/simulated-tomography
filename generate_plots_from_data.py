@@ -264,7 +264,7 @@ plt.show()
 
 
 #Data for rectangles
-data = [[average_conc, average_negs_3], [average_negs_31, average_negs_22]]
+data = [[average_conc, average_negs_31], [average_negs_3, average_negs_22]]
 xlabels = ["1-to-1", "2-to-1", "3-to-1", "2-to-2"]
 
 
@@ -274,17 +274,22 @@ index = np.arange(2)
 
 #Rectangle for negativity/concurrence
 rects1 = plt.bar(index, data[0], PlotSettings.bar_width,
-yerr=[std_conc, std_negs_3],
+yerr=[std_conc, std_negs_31],
 alpha=PlotSettings.opacity,
 color=['g', 'b'],
 label='Concurrence')
 
 #Rectangle for mutual entropy
 rects2 = plt.bar(index + PlotSettings.bar_width*1.4, data[1], PlotSettings.bar_width,
-yerr=[std_negs_31, std_negs_22],	
+yerr=[std_negs_3, std_negs_22],	
 alpha=PlotSettings.opacity,
 color='b',
 label='Negativity')
+
+print(average_conc, "1-to-1", std_conc)
+print(average_negs_3, "2-to-1", std_negs_3)
+print(average_negs_31, "3-to-1", std_negs_31)
+print(average_negs_22, "2-to-2", std_negs_22)
 
 
 #plt.xlabel('Partition')
@@ -294,13 +299,13 @@ plt.xticks([0, 0.5, 1, 1.5], tuple(xlabels))
 plt.legend(loc='upper left')
 
 plt.tight_layout()
-plt.show()
-#plt.savefig('Figures/Negativity results/2-3-and-4-qubit-negativity.pdf', format='pdf', bbox_inches='tight')
+#plt.show()
+plt.savefig('Figures/Negativity results/2-3-and-4-qubit-negativity.pdf', format='pdf', bbox_inches='tight')
 
 
 
 #Data for rectangles
-data = [[average_ents_2, average_ents_3], [average_ents_31, average_ents_22]]
+data = [[average_ents_2, average_ents_31], [average_ents_3, average_ents_22]]
 xlabels = ["1-to-1", "2-to-1", "3-to-1", "2-to-2"]
 
 
@@ -310,17 +315,23 @@ index = np.arange(2)
 
 #Rectangle for negativity/concurrence
 rects1 = plt.bar(index, data[0], PlotSettings.bar_width,
-yerr=[std_ents_2, std_ents_3],
+yerr=[std_ents_2, std_ents_31],
 alpha=PlotSettings.opacity,
 color='b')
 #label='Mutual entropy')
 
 #Rectangle for mutual entropy
 rects2 = plt.bar(index + PlotSettings.bar_width*1.4, data[1], PlotSettings.bar_width,
-yerr=[std_ents_31, std_ents_22],	
+yerr=[std_ents_3, std_ents_22],	
 alpha=PlotSettings.opacity,
 color='b',
 label='Mutual entropy')
+
+
+print(average_ents_2, "1-to-1", std_ents_2)
+print(average_ents_3, "2-to-1", std_ents_3)
+print(average_ents_31, "3-to-1", std_ents_31)
+print(average_ents_22, "2-to-2", std_ents_22)
 
 
 #plt.xlabel('Partition')
@@ -330,5 +341,5 @@ plt.xticks([0, 0.5, 1, 1.5], tuple(xlabels))
 plt.legend(loc='upper left')
 
 plt.tight_layout()
+plt.savefig('Figures/Negativity results/2-3-and-4-qubit-entropies.pdf', format='pdf', bbox_inches='tight')
 plt.show()
-#plt.savefig('Figures/Negativity results/2-3-and-4-qubit-entropies.pdf', format='pdf', bbox_inches='tight')
